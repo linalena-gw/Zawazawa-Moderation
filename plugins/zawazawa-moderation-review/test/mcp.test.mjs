@@ -3,6 +3,7 @@ import test from "node:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { EXTENSION_ID, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
@@ -77,8 +78,8 @@ test("MCPサーバーが一覧表示ツールとUIリソースを公開する", 
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
@@ -747,8 +748,8 @@ test("モデル可視の結果は次の判断に要る値だけを返す", async
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
@@ -882,8 +883,8 @@ test("renderは参照を一度だけ解決しconnector由来の通報確認状�
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
@@ -962,8 +963,8 @@ test("承認ストアと実行ジャーナルの失敗もerrorCodeとnextAction�
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
@@ -1016,8 +1017,8 @@ test("MCP Appsを申告しないホストではapp-onlyツールを公開しな�
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
@@ -1154,8 +1155,8 @@ test("承認済み操作をMCPから送信し結果をジャーナルへ確定�
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
@@ -1301,8 +1302,8 @@ test("実行直前照合は停止・対応不要・送信の三つへ分ける",
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",

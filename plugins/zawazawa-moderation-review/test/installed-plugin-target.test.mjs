@@ -6,13 +6,14 @@ import test from "node:test";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { EXTENSION_ID, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 import { TARGET_CONFIG_FILENAME } from "../server/target-config.mjs";
 
-const serverPath = new URL("../server/server.mjs", import.meta.url).pathname;
-const loaderPath = new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname;
+const serverPath = fileURLToPath(new URL("../server/server.mjs", import.meta.url));
+const loaderPath = new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href;
 
 function temporaryDirectory(context, prefix) {
   const directory = mkdtempSync(join(tmpdir(), prefix));

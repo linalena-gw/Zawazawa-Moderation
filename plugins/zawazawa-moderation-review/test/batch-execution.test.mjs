@@ -3,6 +3,7 @@ import test from "node:test";
 import { mkdtempSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { normalizeReviewInput } from "../server/review-input.mjs";
@@ -43,8 +44,8 @@ async function setup(t, items, { expired = false, hold = [] } = {}) {
     client = new Client({ name: "batch-test", version: "1" });
     await client.connect(new StdioClientTransport({ command: process.execPath,
       args: ["--no-warnings", "--experimental-loader",
-        new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-        new URL("../server/server.mjs", import.meta.url).pathname],
+        new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+        fileURLToPath(new URL("../server/server.mjs", import.meta.url))],
       env: { PATH: process.env.PATH || "", ZAWAZAWA_REVIEW_STORE_DIR: directory,
         ZAWAZAWA_REVIEW_UI: "off", ZAWAZAWA_TARGET_CONFIG: configPath, ZAWAZAWA_TEST_EXECUTION_LOG: logPath },
     }));

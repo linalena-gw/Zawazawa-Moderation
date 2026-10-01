@@ -3,6 +3,7 @@ import test from "node:test";
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { REPORT_DIRECTORY_NAME } from "../server/moderation-report.mjs";
@@ -58,8 +59,8 @@ async function startServer(context, { mode }) {
     args: [
       "--no-warnings",
       "--experimental-loader",
-      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).pathname,
-      new URL("../server/server.mjs", import.meta.url).pathname,
+      new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href,
+      fileURLToPath(new URL("../server/server.mjs", import.meta.url)),
     ],
     env: {
       PATH: process.env.PATH || "",
