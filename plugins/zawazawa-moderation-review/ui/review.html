@@ -550,7 +550,7 @@
   <footer class="submit-dock">
     <div class="submit-copy">
       <strong id="submit-title">判断を選択してください</strong>
-      <span id="submit-detail">未選択の投稿は送信されず、実行されません。</span>
+      <span id="submit-detail">選択後に内容を確認して送信します。未選択の投稿は実行されません。</span>
     </div>
     <button class="primary" id="review-submit" type="button" disabled>選択内容を確認</button>
   </footer>
@@ -699,19 +699,6 @@
           minute: "2-digit",
           hour12: false,
         }).format(date);
-      }
-
-      function listBlock(title, values, ordered = false) {
-        const wrap = element("div");
-        wrap.append(element("h4", { text: title }));
-        if (!values?.length) {
-          wrap.append(element("div", { className: "empty", text: "なし" }));
-          return wrap;
-        }
-        const list = element(ordered ? "ol" : "ul");
-        values.forEach((value) => list.append(element("li", { text: value })));
-        wrap.append(list);
-        return wrap;
       }
 
       // コメント行、通報欄、過去投稿の列で選ぶ操作。行の選択がそのまま操作の選択に
@@ -1682,7 +1669,7 @@
         const judgment = element("details", { className: "judgment-details" });
         judgment.append(
           element("summary", { text: "適用した基準" }),
-          listBlock("適用した基準", item.basis),
+          element("ul", {}, (item.basis || []).map((text) => element("li", { text }))),
         );
         heading.append(kicker, postLine, judgment);
         const links = element("div", { className: "links" });
@@ -1788,9 +1775,12 @@
         $("#submit-title").textContent = state.submitted
           ? "判断を送信しました"
           : `${value.decided} / ${value.total}件を選択`;
+        const unselectedGuidance = `未選択 ${value.undecided}件は実行されません。`;
         $("#submit-detail").textContent = pendingChange
-          ? "変更した投稿は、変更後の内容をサーバーで確認できてから送信できます。"
-          : `推奨どおり承認 ${value.approve}・変更して承認 ${value.alternative}・保留 ${value.hold}。未選択 ${value.undecided}件は実行されません。`;
+          ? `変更した投稿は、変更後の内容をサーバーで確認できてから送信できます。${unselectedGuidance}`
+          : state.submitted
+            ? unselectedGuidance
+            : `選択内容を送信します。${unselectedGuidance}`;
         submit.textContent = state.submitted ? "送信済み" : "選択内容を確認";
       }
 

@@ -286,6 +286,32 @@ test("投稿規制と通報の扱いは、効く対象を選び直すたびに�
   assert.match(html, /対象 \$\{targets\} の通報を閉じます。/u);
 });
 
+test("判断カードの適用基準は展開内に見出しを繰り返さない", () => {
+  const card = html.slice(html.indexOf("function createCard("), html.indexOf("function link("));
+  assert.equal([...card.matchAll(/適用した基準/gu)].length, 1);
+  assert.match(card, /element\("ul", \{\}, \(item\.basis \|\| \[\]\)\.map/u);
+  assert.doesNotMatch(card, /listBlock\(/u);
+});
+
+test("restricted送信欄は状態別件数を繰り返さず、送信確認の内訳は保つ", () => {
+  const progressStart = html.indexOf("function updateProgress()");
+  const progressEnd = html.indexOf("// [widget-state:start]", progressStart);
+  const progress = html.slice(progressStart, progressEnd);
+  assert.match(progress, /`\$\{value\.decided\} \/ \$\{value\.total\}件を選択`/u);
+  assert.match(progress, /\$\("#count-approve"\)\.textContent = `承認 \$\{value\.approve\}`/u);
+  assert.match(progress, /\$\("#count-hold"\)\.textContent = `保留 \$\{value\.hold\}`/u);
+  assert.match(progress, /\$\("#count-alternative"\)\.textContent = `変更して承認 \$\{value\.alternative\}`/u);
+  const footerGuidance = progress.slice(
+    progress.indexOf("const unselectedGuidance"),
+    progress.indexOf("submit.textContent"),
+  );
+  assert.match(footerGuidance, /const unselectedGuidance = `未選択 \$\{value\.undecided\}件は実行されません。`/u);
+  assert.doesNotMatch(footerGuidance, /推奨どおり承認 \$\{value\.approve\}/u);
+  assert.doesNotMatch(footerGuidance, /変更して承認 \$\{value\.alternative\}/u);
+  assert.doesNotMatch(footerGuidance, /保留 \$\{value\.hold\}/u);
+  assert.match(html, /#confirm-summary.*推奨どおり承認 \$\{value\.approve\}件、変更して承認 \$\{value\.alternative\}件、保留 \$\{value\.hold\}件/u);
+});
+
 test("UIに投稿ごとの承認・保留と最終送信を備える", () => {
   // 判断は承認と保留の二択とし、承認の中身は行の選択が推奨案と同じかどうかで決まる。
   assert.match(html, /choiceButton\(item\.id, "approve", "承認"\)/u);
