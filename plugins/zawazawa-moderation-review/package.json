@@ -1,0 +1,27 @@
+{
+  "name": "zawazawa-moderation-review",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Local MCP Apps UI for reviewing ZAWAZAWA moderation proposals.",
+  "repository": "https://github.com/linalena-gw/Zawazawa-Moderation",
+  "license": "MIT",
+  "scripts": {
+    "test": "npm run verify",
+    "verify": "node --test && node scripts/verify-release.mjs",
+    "start": "node server/server.mjs",
+    "postinstall": "playwright-core install chromium",
+    "auth:zawazawa": "node scripts/zawazawa-auth.mjs",
+    "preview": "node scripts/preview-server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/sdk": "^1.17.5",
+    "cheerio": "^1.2.0",
+    "playwright-core": "^1.62.1",
+    "zod": "^3.25.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

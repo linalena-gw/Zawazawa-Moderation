@@ -1,0 +1,15 @@
+# 自律処理の結果報告。コメント本文と通報理由を含むため、git管理へ入れない。
+moderation-reports/
+
+# 個人用のエージェント・エディタ設定は公開正本へ入れない。
+.codex/
+.vscode/
+
+# ローカルの認証・設定・環境変数を公開しない。
+.env
+.env.*
+zawazawa.config.json
+
+.DS_Store
+Thumbs.db
+desktop.ini

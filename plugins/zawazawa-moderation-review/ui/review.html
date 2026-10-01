@@ -1,0 +1,2436 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="data:," />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: light-dark(#f6f7f5, #101512);
+      --surface: light-dark(#ffffff, #18201c);
+      --surface-2: light-dark(#f1f4f1, #202a25);
+      --surface-3: light-dark(#e7ece8, #29352f);
+      --text: light-dark(#17201c, #eff5f1);
+      --muted: light-dark(#637069, #a8b5ae);
+      --line: light-dark(#d9dfda, #344139);
+      --line-strong: light-dark(#b8c2bb, #526158);
+      --accent: light-dark(#176b57, #79c5ad);
+      --accent-ink: light-dark(#ffffff, #102019);
+      --hold: light-dark(#755c2e, #dfc27f);
+      --alternative: light-dark(#76512f, #e1aa76);
+      --danger: light-dark(#a13b35, #f39a92);
+      --shadow: 0 12px 32px rgba(24, 39, 31, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+
+    button, textarea, select, input { font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      outline-offset: 2px;
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .shell { max-width: 1180px; margin: 0 auto; padding: 16px 18px 116px; }
+    .hero {
+      padding: 10px 2px 18px;
+    }
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: clamp(25px, 3.6vw, 36px); line-height: 1.15; letter-spacing: -.025em; }
+
+    .toolbar {
+      position: sticky;
+      top: 8px;
+      z-index: 6;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 9px 14px;
+      align-items: end;
+      margin-bottom: 14px;
+      padding: 11px 12px;
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: color-mix(in srgb, var(--surface) 95%, transparent);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+    }
+    .progress { display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .chip[data-kind="approve"] { color: var(--accent); }
+    .chip[data-kind="hold"] { color: var(--hold); }
+    .chip[data-kind="alternative"] { color: var(--alternative); }
+    .progress-track {
+      grid-column: 1 / -1;
+      height: 4px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: var(--surface-3);
+    }
+    .progress-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--accent);
+      transition: width 180ms ease;
+    }
+    .toolbar-actions { display: flex; gap: 8px; align-items: center; }
+    select {
+      min-height: 40px;
+      padding: 7px 33px 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .quiet-button {
+      min-height: 40px;
+      padding: 7px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 700;
+    }
+    .quiet-button:hover { border-color: var(--line-strong); background: var(--surface-2); }
+    .quiet-button:disabled { cursor: not-allowed; opacity: .45; }
+
+    .cards { display: grid; gap: 14px; }
+    .card {
+      position: relative;
+      overflow: clip;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--surface);
+      box-shadow: 0 4px 18px rgba(24, 39, 31, .04);
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+    .card::before {
+      position: absolute;
+      z-index: 1;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: var(--line);
+      content: "";
+    }
+    .card[data-choice="approve"] { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+    .card[data-choice="approve"]::before { background: var(--accent); }
+    .card[data-choice="hold"]::before { background: var(--hold); }
+    .card[data-choice="alternative"]::before { background: var(--alternative); }
+    .card:focus-within { border-color: var(--line-strong); box-shadow: var(--shadow); }
+    .card[hidden] { display: none; }
+    .card-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 17px 18px 15px 21px;
+      border-bottom: 1px solid var(--line);
+    }
+    .card-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .card-index { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+    .status-chip {
+      padding: 2px 7px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .card[data-choice="approve"] .status-chip { border-color: color-mix(in srgb, var(--accent) 42%, var(--line)); color: var(--accent); }
+    .card[data-choice="hold"] .status-chip { border-color: color-mix(in srgb, var(--hold) 42%, var(--line)); color: var(--hold); }
+    .card[data-choice="alternative"] .status-chip { border-color: color-mix(in srgb, var(--alternative) 42%, var(--line)); color: var(--alternative); }
+    .post-line { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .post-line h2 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+    .tag {
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--surface-2);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .report-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+    .report-item {
+      padding: 9px 11px 10px;
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--danger);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    .report-reason { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+    .report-meta { display: flex; flex-wrap: wrap; gap: 3px 9px; margin-top: 5px; color: var(--muted); font-size: 11px; }
+    .report-item[hidden] { display: none; }
+    .more-reports {
+      justify-self: start;
+      padding: 6px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .links { display: flex; flex-wrap: wrap; gap: 7px; align-items: flex-start; justify-content: end; }
+    .links a {
+      padding: 6px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .links a:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
+    .card-body {
+      display: grid;
+      gap: 18px;
+      padding: 17px 18px 18px;
+      background: color-mix(in srgb, var(--surface-2) 54%, transparent);
+    }
+    .history-details summary { padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); cursor: pointer; font-size: 13px; font-weight: 700; }
+    .history-details[open] summary { border-radius: 10px 10px 0 0; }
+    .history-details .history-list { padding: 8px 0 0; }
+    h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: .03em; }
+
+    /* 判断材料の各行と、その行に対する対処案を同じ行へ並べる。番号を探して
+       スクロールしなくても、どのコメントを何にするかがその場で決まる。 */
+    .lane {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 268px);
+      gap: 8px 14px;
+      align-items: start;
+    }
+    .lane-title {
+      margin: 0 0 2px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .lane > .empty, .lane > .report-list, .lane > .report-block { min-width: 0; }
+    .report-block { display: grid; gap: 7px; min-width: 0; }
+    .action-cell {
+      display: grid;
+      gap: 6px;
+      align-content: start;
+      padding: 9px 10px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    .action-cell[data-actionable="false"] {
+      border-style: dashed;
+      background: transparent;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .action-select { width: 100%; min-height: 36px; font-weight: 750; }
+    .action-select[data-action="delete"] { border-color: color-mix(in srgb, var(--danger) 55%, var(--line)); color: var(--danger); }
+    .action-select[data-action="ignore"] { border-color: color-mix(in srgb, var(--hold) 55%, var(--line)); color: var(--hold); }
+    .action-note { color: var(--muted); font-size: 11px; }
+    .action-note:empty { display: none; }
+    .action-messages:empty { display: none; }
+    .action-messages { display: grid; gap: 6px; }
+    h4 { margin: 14px 0 5px; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    ul, ol { margin: 6px 0 0; padding-left: 20px; }
+    li + li { margin-top: 4px; }
+    .empty { color: var(--muted); font-size: 13px; }
+    .comment-item {
+      position: relative;
+      margin-left: calc(var(--depth, 0) * 20px);
+      padding: 10px 11px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+    }
+    .comment-item::before {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 3px;
+      border-radius: 10px 0 0 10px;
+      background: var(--line-strong);
+      content: "";
+    }
+    .comment-item[data-role="通報対象"] {
+      border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+      background: color-mix(in srgb, var(--danger) 11%, var(--surface));
+    }
+    .comment-item[data-role="通報対象"]::before { background: var(--danger); }
+    .comment-item[data-role="文脈整理対象"] {
+      border-color: color-mix(in srgb, var(--hold) 45%, var(--line));
+      background: color-mix(in srgb, var(--hold) 11%, var(--surface));
+    }
+    .comment-item[data-role="文脈整理対象"]::before { background: var(--hold); }
+    /* 行の出所の区分け。対処案の列にかかる見出しではないので、両列にまたがらせる。 */
+    .comment-group {
+      grid-column: 1 / -1;
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+    .comment-meta { display: flex; flex-wrap: wrap; gap: 5px 9px; align-items: baseline; color: var(--muted); font-size: 11px; }
+    .comment-number { color: var(--accent); font-weight: 800; text-decoration: none; }
+    .comment-number:hover { text-decoration: underline; }
+    .comment-author { color: var(--text); font-weight: 700; }
+    .comment-body { margin: 7px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+    .comment-state { margin-left: auto; }
+    .history-list { display: grid; gap: 8px; }
+    .history-list .comment-item { margin-left: 0; background: color-mix(in srgb, var(--surface) 80%, var(--surface-2)); }
+    .judgment-details { margin-top: 8px; }
+    .judgment-details summary { color: var(--muted); cursor: pointer; font-size: 12px; font-weight: 750; }
+    .judgment-details[open] summary { color: var(--text); }
+
+    /* 結果報告は同じ一覧の読み取り専用表示にする。編集する要素は描画そのものを行わない。 */
+    .report-section { margin: 0 0 12px; }
+    .report-section h2 { margin: 0 0 4px; font-size: 18px; letter-spacing: -.015em; }
+    .report-note { margin: 0; color: var(--muted); font-size: 13px; }
+    .report-note + .report-note { margin-top: 4px; }
+    .card[data-choice="attention"] { border-color: color-mix(in srgb, var(--danger) 40%, var(--line)); }
+    .card[data-choice="attention"]::before { background: var(--danger); }
+    .card[data-choice="attention"] .status-chip { border-color: color-mix(in srgb, var(--danger) 42%, var(--line)); color: var(--danger); }
+    .action-line {
+      display: grid;
+      gap: 3px;
+      padding: 7px 8px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--surface-2) 60%, var(--surface));
+    }
+    .action-line strong { font-size: 12px; }
+    .action-status { font-size: 11px; font-weight: 800; }
+    .action-status[data-status="confirmed"] { color: var(--accent); }
+    .action-status[data-status="dispatching"], .action-status[data-status="unknown"] { color: var(--alternative); }
+    .action-status[data-status="mismatch"] { color: var(--danger); }
+    .action-status[data-status="ready"], .action-status[data-status="none"] { color: var(--muted); }
+    .action-status[data-status="no_action_needed"] { color: var(--muted); }
+    .sent-message-label { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+    .sent-message {
+      margin: 3px 0 0;
+      padding: 6px 7px;
+      border-radius: 6px;
+      background: var(--surface);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font-size: 12px;
+    }
+
+    /* 通報の扱いと同じ場所でこの投稿を送るかどうかを決める。 */
+    .decision-cell { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+    .decision-title {
+      margin: 4px 0 0;
+      padding-top: 8px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .choice-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .choice {
+      min-height: 40px;
+      padding: 8px 13px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface);
+      color: var(--text);
+      font-weight: 750;
+    }
+    .choice[aria-pressed="true"][data-choice="approve"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+    .choice[aria-pressed="true"][data-choice="hold"] { border-color: var(--hold); background: color-mix(in srgb, var(--hold) 17%, var(--surface)); color: var(--hold); }
+    .choice[aria-pressed="true"][data-choice="alternative"] { border-color: var(--alternative); background: color-mix(in srgb, var(--alternative) 17%, var(--surface)); color: var(--alternative); }
+    .other-operations {
+      min-width: 0;
+      margin: 0;
+      padding: 10px 11px 11px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    .other-operations legend { padding: 0 5px; font-size: 12px; font-weight: 800; }
+    .editor-list { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+    .editor-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 5px 8px;
+      align-items: start;
+      padding: 8px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      font-size: 12px;
+    }
+    .editor-row[data-disabled="true"] { opacity: .62; }
+    .editor-row label { display: grid; gap: 2px; }
+    .editor-row small { color: var(--muted); }
+    .row-message {
+      grid-column: 2 / -1;
+      padding: 8px 9px 9px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 9px;
+      background: var(--surface);
+    }
+    .row-message[data-omitted="true"] { opacity: .55; }
+    .row-message-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+    .row-message textarea { min-height: 66px; font-size: 12px; }
+    .row-message textarea:disabled { cursor: not-allowed; }
+    .omit-toggle { display: flex; gap: 4px; align-items: center; font-weight: 700; }
+    textarea {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      padding: 10px 11px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    .help { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+
+    .submit-dock {
+      position: fixed;
+      z-index: 8;
+      left: 50%;
+      bottom: 17px;
+      width: min(calc(100% - 28px), 1144px);
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--surface) 94%, transparent);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 50px rgba(15, 31, 25, .18);
+    }
+    .submit-copy { flex: 1; min-width: 0; }
+    .submit-copy strong { display: block; }
+    .submit-copy span { display: block; overflow: hidden; color: var(--muted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .primary {
+      min-height: 44px;
+      padding: 9px 16px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 800;
+    }
+    .primary:disabled { cursor: not-allowed; opacity: .45; }
+    .primary[data-busy="true"] { cursor: wait; opacity: .65; }
+
+    dialog {
+      width: min(560px, calc(100% - 28px));
+      padding: 0;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, .3);
+    }
+    dialog::backdrop { background: rgba(7, 14, 11, .56); backdrop-filter: blur(4px); }
+    .dialog-body { padding: 19px; }
+    .dialog-body h2 { margin: 0 0 8px; }
+    .dialog-actions { display: flex; justify-content: end; gap: 8px; padding: 12px 19px; border-top: 1px solid var(--line); }
+    .secondary { min-height: 42px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); color: var(--text); font-weight: 700; }
+    .error { margin-top: 9px; color: var(--danger); font-size: 12px; }
+    .error.notice { color: var(--muted); }
+    .success { color: var(--accent); }
+    .filter-empty {
+      padding: 34px 20px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 760px) {
+      .shell { padding-inline: 12px; }
+      .toolbar { top: 6px; grid-template-columns: 1fr; }
+      .toolbar-actions { width: 100%; }
+      .toolbar-actions label { flex: 1; }
+      .toolbar-actions select { width: 100%; }
+      .progress-track { grid-column: 1; }
+      .lane { grid-template-columns: 1fr; }
+      /* 縦積みでは各行の直後に対処案が続くため、列見出しは行の説明にならない。 */
+      .lane-title + .lane-title { display: none; }
+      .card-head { grid-template-columns: 1fr; }
+      .links { justify-content: start; }
+      .other-operations { grid-column: 1; }
+      .submit-dock { align-items: stretch; flex-direction: column; }
+      .primary { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <p class="eyebrow">ZAWAZAWA Moderation</p>
+      <h1 id="batch-title"><time id="checked-at">—</time></h1>
+    </header>
+
+    <section class="toolbar" aria-label="レビュー進捗">
+      <div class="progress">
+        <span class="chip" id="count-undecided">未選択 0</span>
+        <span class="chip" data-kind="approve" id="count-approve">承認 0</span>
+        <span class="chip" data-kind="hold" id="count-hold">保留 0</span>
+        <span class="chip" data-kind="alternative" id="count-alternative">変更して承認 0</span>
+      </div>
+      <div class="toolbar-actions">
+        <button class="quiet-button" id="next-undecided" type="button">次の未選択へ</button>
+        <label>
+          <span class="visually-hidden">表示対象</span>
+          <select id="filter">
+            <option value="all">すべて表示</option>
+            <option value="undecided">未選択のみ</option>
+            <option value="approve">承認のみ</option>
+            <option value="hold">保留のみ</option>
+            <option value="alternative">変更して承認のみ</option>
+          </select>
+        </label>
+      </div>
+      <div class="progress-track" role="progressbar" aria-label="レビュー進捗" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </section>
+
+    <section class="report-section" id="report-executed-section" hidden>
+      <p class="report-note" id="report-executed-note"></p>
+      <p class="report-note" id="report-executed-blocked" hidden></p>
+    </section>
+
+    <section class="cards" id="cards" aria-live="polite"></section>
+    <div class="filter-empty" id="filter-empty" hidden>この条件に一致する投稿はありません。</div>
+    <div class="filter-empty" id="load-status">対処案の受信を待っています…</div>
+
+  </main>
+
+  <footer class="submit-dock">
+    <div class="submit-copy">
+      <strong id="submit-title">判断を選択してください</strong>
+      <span id="submit-detail">未選択の投稿は送信されず、実行されません。</span>
+    </div>
+    <button class="primary" id="review-submit" type="button" disabled>選択内容を確認</button>
+  </footer>
+
+  <dialog id="confirm-dialog">
+    <div class="dialog-body">
+      <h2 id="confirm-title">選択内容を送信しますか？</h2>
+      <p id="confirm-summary"></p>
+      <p class="help">承認した投稿だけが実行対象になります。エージェントは実行直前に最新状態を確認し、承認時と一致した投稿だけを実行します。</p>
+      <p class="error" id="dialog-error" hidden></p>
+    </div>
+    <div class="dialog-actions">
+      <button class="secondary" id="cancel-submit" type="button">戻る</button>
+      <button class="primary" id="confirm-submit" type="button">この選択を送信</button>
+    </div>
+  </dialog>
+
+  <!-- mcp-app-runtime -->
+  <!-- host-bootstrap -->
+  <!--
+    一覧の表示範囲。完全案の解決規則は server/resolved-plan.mjs、承認の意味は
+    skills/zawazawa-moderation/references/review-contract.md が正本である。
+
+    一覧は管理者が判断に使う内容だけを出す。処置対象のコメントツリー、その単位に付いた未処理
+    通報の理由、同じ投稿者の確認済み過去投稿、そして完全案から導いた対処結果である。
+    対処結果は、外部操作ごとの固定日本語ラベル（操作種別からサーバーが決める）、宣言対象の
+    コメント番号、その操作へ束縛した送信メッセージ全文とする。適用基準は既定で開かない
+    折りたたみへ置く。
+
+    処理単位の見出しは、サーバーが組み立てた表題（トピック名と処置対象のコメント番号）だけに
+    する。推奨内容を自然文で言い直した判定や、依存グループのような内部の関係は見出しへ出さない。
+    何を実行するかは各列の選択が示し、依存による停止はサーバーが返す結果で決まるためである。
+
+    通報理由は先頭の数件だけを開いた状態で出し、残りは同じ場所へ開くボタンにする。多量の
+    通報で一覧が縦に伸びると、他の処理単位へ辿り着けなくなる。
+
+    通報の見出しは、その単位の通報を読み切れた場合だけ件数を出す。管理画面の通報表が1ページに
+    収まらない単位では、読めた件数を全部として出さず、読み切れていないことと、管理画面の件数
+    表示から総件数が分かる場合はその総件数を出す。読めた通報だけを数えて見せると、他にも通報
+    があることを知らないまま判断されるためである。残件数は推測しない。
+
+    対処案は判断材料の隣に置く。コメントツリーの各行の隣ではそのコメントへの操作を、通報欄の
+    隣では通報を閉じる操作とその操作へ束縛した送信メッセージを、投稿履歴の隣では投稿者と
+    接続元への措置を選ぶ。投稿履歴は件数だけを出して既定で畳む。
+
+    各列が出す選択肢は処理単位のスナップショットから決まり、提案の有無で変わらない。サーバーは
+    comment_delete、report_complete、report_ignore、author_auto_ignore、source_block と、外部
+    操作を行わない宣言を、提案に無ければ操作候補として補う。モデルの提案は各列の既定値を決める
+    だけで、補われた候補は既定では選ばれず、実行順は提案済みの操作より後になる。どの列にも
+    属さない処理単位全体の操作だけを、追加操作として別に並べる。
+
+    管理者が選ぶのは承認と保留の二つとし、通報の扱いと同じ場所に置く。行の選択が推奨案と同じ
+    承認は推奨案の承認、違う承認は代替案とし、どちらを送るかは画面の選択から導く。代替案として
+    送る場合は、解決済み完全案とトークンを取得できるまで送信できない。
+
+    完全案の内容を画面へ文章で再掲しない。各列の選択がそのまま承認内容であり、同じ内容を
+    二か所へ書くと、どちらを承認したのかが読み手に決められなくなる。
+
+    コメントの役割は 通報対象（解決済みの未処理通報が付いた処置対象候補）と 文脈整理対象
+    （通報されていないのに同じ処置へ含める処置対象候補——通報対象への返信や、削除する親に
+    ぶら下がる子）に分けて示し、解決済みの通報記録と処置対象候補だけから決める。どちらでもない
+    コメントには役割を付けず 前後文脈 として示す。役割はコメントの列だけに出し、対処案の列へ
+    再掲しない。
+
+    コメント行の出所は、処置対象と同じ木につながる投稿、同じトピックの別の木、別のトピックから
+    拾った投稿に分けて示し、出所が二つ以上へ分かれる単位でだけ区分けの見出しを出す。区分けは
+    サーバーが解決したトピック番号と親子関係だけから決める。各行のコメント番号には、その行の
+    トピック名を添え、読めなかったトピックはトピック番号で代える。どの掲示板のどの木から拾った
+    文脈なのかが行から読み取れないと、管理者は判断のたびに管理画面と公開ページを開き直すことに
+    なる。親子関係も同じトピックの中だけで結ぶ。
+
+    承認境界としてサーバーが保持し、実行直前照合にだけ使う内部識別子は、選択の内部キーとして
+    持つことはあっても管理者への表示へは出さない。何を出さないかは server/resolved-plan.mjs
+    冒頭が持つ。外部操作を行わない宣言は
+    対処結果へ並べず、外部操作が一つも無い単位だけを操作なしとして示す。表示から外した項目は
+    完全案とトークンの計算対象から外れず、承認の境界も照合の基準も変わらない。管理者が承認
+    するのは、あくまでトークンで特定される完全案全体である。
+  -->
+  <script>
+    (() => {
+      const state = {
+        batch: null,
+        decisions: {},
+        drafts: {},
+        submitted: false,
+        filter: "all",
+        loadingIdentity: null,
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+      const cards = $("#cards");
+      const dialog = $("#confirm-dialog");
+
+      // ホストとのやり取りはMCP Apps（SEP-1865）の公式App SDKに任せる。
+      // ハンドシェイク、メッセージ検証、未対応メソッドへの応答はSDKが持つ。
+      // SDK本体は`server/mcp-app-runtime.mjs`がこのHTMLへ埋め込み、
+      // `window.McpApps`として読める。
+      let app = null;
+      let toolResultTimer = null;
+
+      // ホストは対処案を`ui/notifications/tool-result`で配る。届かないまま
+      // 「受信を待っています」と表示し続けないための上限。
+      const TOOL_RESULT_WAIT_MS = 20000;
+
+      async function callTool(name, args) {
+        if (app) return app.callServerTool({ name, arguments: args });
+        // window.openaiを持つホスト（OpenAI Apps SDK）と、ブラウザで直接開いた一覧では
+        // Appを作らない。どちらも埋め込みの呼び出し口を使う。
+        if (window.openai?.callTool) return window.openai.callTool(name, args);
+        throw new Error("ホストと接続できていません。会話へ戻り、一覧の再表示を依頼してください。");
+      }
+
+      // サーバーが返した失敗は理由込みで見せる。汎用文へ潰すと、期限切れ・送信済み・
+      // スナップショット不一致のどれなのかが画面から分からなくなる。理由の文言は
+      // `content`にだけあるので、そちらを先に読む。
+      function structuredOf(result) {
+        const value = result?.structuredContent || result?.content?.[0]?.structuredContent;
+        if (result?.isError || value?.errorCode) {
+          throw new Error(
+            result?.content?.[0]?.text || value?.errorCode || "サーバーが処理を完了できませんでした。",
+          );
+        }
+        return value;
+      }
+
+      function element(tag, options = {}, children = []) {
+        const node = document.createElement(tag);
+        if (options.className) node.className = options.className;
+        if (options.text !== undefined) node.textContent = options.text;
+        for (const [name, value] of Object.entries(options.attrs || {})) {
+          if (value !== undefined && value !== null) node.setAttribute(name, String(value));
+        }
+        for (const child of children) node.append(child);
+        return node;
+      }
+
+      function formatCheckedAt(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return "—";
+        return new Intl.DateTimeFormat("ja-JP", {
+          timeZone: "Asia/Tokyo",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }).format(date);
+      }
+
+      function listBlock(title, values, ordered = false) {
+        const wrap = element("div");
+        wrap.append(element("h4", { text: title }));
+        if (!values?.length) {
+          wrap.append(element("div", { className: "empty", text: "なし" }));
+          return wrap;
+        }
+        const list = element(ordered ? "ol" : "ul");
+        values.forEach((value) => list.append(element("li", { text: value })));
+        wrap.append(list);
+        return wrap;
+      }
+
+      // コメント行、通報欄、過去投稿の列で選ぶ操作。行の選択がそのまま操作の選択に
+      // なるので、画面には操作の一覧を別に置かない。
+      const COMMENT_OPERATION_TYPES = ["comment_delete", "comment_restore"];
+      const REPORT_OPERATION_TYPES = ["report_complete", "report_ignore"];
+      const AUTHOR_OPERATION_TYPES = ["author_auto_ignore", "source_block"];
+      const KEEP_ACTION = "keep";
+      const NO_REPORT_ACTION = "none";
+      const NO_AUTHOR_ACTION = "none";
+      const DELETED_STATE = "削除済み";
+      const PREVIEW_DELAY_MS = 400;
+      const previewTimers = new Map();
+
+      // 新しい高影響措置は一覧では作れない。既定で選ばれていない高影響候補を
+      // 選択肢から外し、その旨だけを行に添える。列として常に出す措置はサーバーが
+      // 補うため、ここで落ちるのは公開案内や解除操作のような追加操作だけになる。
+      function selectableCandidate(candidate) {
+        return !(candidate.highImpact && !candidate.selectedByDefault);
+      }
+
+      function candidatePlan(item) {
+        const candidates = (item.recommendation.operationCandidates || []).filter(
+          selectableCandidate,
+        );
+        const comment = candidates.filter((candidate) =>
+          COMMENT_OPERATION_TYPES.includes(candidate.operationType),
+        );
+        const report = candidates.filter((candidate) =>
+          REPORT_OPERATION_TYPES.includes(candidate.operationType),
+        );
+        const author = candidates.filter((candidate) =>
+          AUTHOR_OPERATION_TYPES.includes(candidate.operationType),
+        );
+        const noop = candidates.find((candidate) => candidate.operationType === "no_external_action");
+        const other = candidates.filter(
+          (candidate) =>
+            !COMMENT_OPERATION_TYPES.includes(candidate.operationType) &&
+            !REPORT_OPERATION_TYPES.includes(candidate.operationType) &&
+            !AUTHOR_OPERATION_TYPES.includes(candidate.operationType) &&
+            candidate.operationType !== "no_external_action",
+        );
+        return { comment, report, author, other, noop: noop || null };
+      }
+
+      // ツリーに出ているコメントはどれも対処の検討対象になる。宣言対象かどうかで
+      // 選択肢を変えず、現在状態と食い違う操作だけを外す。
+      function commentCandidatesFor(item, plan, comment) {
+        if (!isSelectableRow(item, comment)) return [];
+        const deleted = comment.currentState === DELETED_STATE;
+        return plan.comment.filter((candidate) =>
+          deleted
+            ? candidate.operationType === "comment_restore"
+            : candidate.operationType === "comment_delete",
+        );
+      }
+
+      // 処置対象候補でない行は、現在状態と公開URLをサーバーが解決できたコメントだけを
+      // 処置対象に選べる。状態が未確認のまま承認すると、実行直前照合が期待状態を持てず、
+      // 承認した後になって破損として止まる。サーバー側の選択可能判定と同じ条件にする。
+      function isSelectableRow(item, comment) {
+        const isTarget = (item.recommendation.targets || []).some(
+          (target) => target.commentNumber === comment.commentNumber,
+        );
+        return isTarget || Boolean(comment.currentState && comment.url);
+      }
+
+      // 親子関係は同じトピックの中だけで結ぶ。別のトピックから拾った文脈が同じ番号を
+      // 持つことはあるので、番号だけで親をたどると無関係な投稿へぶら下がって見える。
+      function treeKey(topicNumber, commentNumber) {
+        return `${topicNumber || ""}/${commentNumber}`;
+      }
+
+      function commentTreeLookup(comments) {
+        return new Map(
+          comments.map((comment) => [treeKey(comment.topicNumber, comment.commentNumber), comment]),
+        );
+      }
+
+      function parentComment(comment, lookup) {
+        return comment.parentCommentNumber
+          ? lookup.get(treeKey(comment.topicNumber, comment.parentCommentNumber))
+          : undefined;
+      }
+
+      function commentDepth(comment, lookup) {
+        let depth = 0;
+        let current = comment;
+        const seen = new Set([comment.commentNumber]);
+        for (;;) {
+          const parent = parentComment(current, lookup);
+          if (!parent || seen.has(parent.commentNumber) || depth >= 6) return depth;
+          seen.add(parent.commentNumber);
+          depth += 1;
+          current = parent;
+        }
+      }
+
+      // [comment-roles:start]
+      // コメントの役割は、モデルが書いた関係の説明ではなく、サーバーが解決した通報記録と
+      // 処置対象候補から決める。通報対象は未処理通報が付いたコメント、文脈整理対象は
+      // 通報されていないのに同じ処置へ含めるコメント——通報対象への返信や、削除する親
+      // コメントにぶら下がる子コメント——を指す。
+      function commentRoles(item) {
+        const targetNumbers = (item.recommendation?.targets || []).map(
+          (target) => target.commentNumber,
+        );
+        // 対象候補が一つだけの単位では、対象コメント番号の無い通報行もその対象の通報になる。
+        const onlyTargetNumber = targetNumbers.length === 1 ? targetNumbers[0] : null;
+        const reported = new Set();
+        for (const report of item.reports || []) {
+          const commentNumber = report.targetCommentNumber || onlyTargetNumber;
+          if (commentNumber) reported.add(commentNumber);
+        }
+        const roles = new Map();
+        for (const commentNumber of targetNumbers) {
+          roles.set(commentNumber, reported.has(commentNumber) ? "通報対象" : "文脈整理対象");
+        }
+        // 処置対象候補に入っていない通報対象も、通報された事実だけは示す。
+        for (const commentNumber of reported) {
+          if (!roles.has(commentNumber)) roles.set(commentNumber, "通報対象");
+        }
+        return roles;
+      }
+      // [comment-roles:end]
+
+      // [comment-groups:start]
+      // 行の出所を三つに分ける。処置対象と同じ木につながる投稿、同じトピックの別の木、
+      // 別のトピックから拾った投稿。番号だけが縦に並ぶ一覧では、どこから拾った文脈なのかを
+      // 管理者が読み取れないためである。区分けはモデルが書いた説明ではなく、サーバーが
+      // 解決したトピック番号と親子関係だけで決まる。
+      const COMMENT_GROUP_ORDER = ["同一ツリー", "別ツリー", "別トピック"];
+
+      // 処理単位が立っているトピック。処置対象のトピックを基準にし、対象の本文が
+      // 一覧に無い場合だけ先頭のコメントで代える。
+      function baseTopicNumber(item) {
+        const comments = item.comments || [];
+        const targetNumbers = new Set(
+          (item.recommendation?.targets || []).map((target) => target.commentNumber),
+        );
+        const target = comments.find((comment) => targetNumbers.has(comment.commentNumber));
+        return (target || comments[0])?.topicNumber;
+      }
+
+      // 木の根。親が一覧に無ければ、たどれた最後の親番号を根として扱う。取得できた範囲
+      // だけで根を決めると、同じ木の投稿が親の有無で別の木に見えてしまう。
+      function rootCommentNumber(comment, lookup) {
+        let current = comment;
+        const seen = new Set([comment.commentNumber]);
+        while (current.parentCommentNumber) {
+          const parentNumber = current.parentCommentNumber;
+          const parent = parentComment(current, lookup);
+          if (!parent || seen.has(parentNumber)) return parentNumber;
+          seen.add(parentNumber);
+          current = parent;
+        }
+        return current.commentNumber;
+      }
+
+      function commentGroupResolver(item, comments, lookup) {
+        const topicNumber = baseTopicNumber(item);
+        const targetNumbers = new Set(
+          (item.recommendation?.targets || []).map((target) => target.commentNumber),
+        );
+        const targetRoots = new Set(
+          comments
+            .filter(
+              (comment) =>
+                targetNumbers.has(comment.commentNumber) && comment.topicNumber === topicNumber,
+            )
+            .map((comment) => rootCommentNumber(comment, lookup)),
+        );
+        return (comment) => {
+          if (topicNumber && comment.topicNumber && comment.topicNumber !== topicNumber) {
+            return "別トピック";
+          }
+          return targetRoots.has(rootCommentNumber(comment, lookup)) ? "同一ツリー" : "別ツリー";
+        };
+      }
+
+      // 区分けの見出しは、出所が二つ以上に分かれる単位にだけ出す。同じ木しか無い一覧へ
+      // 見出しを足しても読む手掛かりは増えず、行から離れた分だけ読みにくくなる。
+      function appendGroupedRows(lane, rows, renderRow) {
+        const shown = COMMENT_GROUP_ORDER.filter((group) =>
+          rows.some((row) => row.group === group),
+        );
+        for (const group of shown) {
+          if (shown.length > 1) {
+            lane.append(element("div", { className: "comment-group", text: group }));
+          }
+          for (const row of rows.filter((row) => row.group === group)) {
+            lane.append(...renderRow(row));
+          }
+        }
+      }
+
+      // コメント番号にトピック名を添える。名前を読めなかったトピックは番号で代える。
+      function commentNumberText(comment) {
+        const topic =
+          comment.topicName || (comment.topicNumber ? `トピック${comment.topicNumber}` : "");
+        return topic ? `${topic} #${comment.commentNumber}` : `#${comment.commentNumber}`;
+      }
+      // [comment-groups:end]
+
+      // labelは役割の付かない行のためにある。役割はcommentRolesの解決結果だけで決まり、
+      // モデルはどちらへも語を渡せない。
+      function commentBlock(comment, depth = 0, role = "", label = role) {
+        const block = element("article", {
+          className: "comment-item",
+          attrs: { style: `--depth: ${depth}`, "data-role": role },
+        });
+        const meta = element("div", { className: "comment-meta" });
+        const numberText = commentNumberText(comment);
+        const number = comment.url
+          ? element("a", { className: "comment-number", text: numberText, attrs: { href: comment.url, target: "_blank", rel: "noreferrer" } })
+          : element("span", { className: "comment-number", text: numberText });
+        meta.append(number);
+        if (comment.displayName) meta.append(element("span", { className: "comment-author", text: comment.displayName }));
+        if (comment.createdAt) meta.append(element("time", { text: comment.createdAt, attrs: { datetime: comment.createdAt } }));
+        if (label) meta.append(element("span", { className: "tag", text: label }));
+        if (comment.currentState) meta.append(element("span", { className: "comment-state", text: comment.currentState }));
+        block.append(meta, element("p", { className: "comment-body", text: comment.body }));
+        return block;
+      }
+
+      function actionSelect(ariaLabel, options, value, onChange) {
+        const select = element("select", {
+          className: "action-select",
+          attrs: { "aria-label": ariaLabel },
+        });
+        options.forEach((option) => {
+          select.append(element("option", { text: option.label, attrs: { value: option.value } }));
+        });
+        select.value = value;
+        const kindOf = (current) => options.find((option) => option.value === current)?.kind || "";
+        select.dataset.action = kindOf(value);
+        select.addEventListener("change", () => {
+          select.dataset.action = kindOf(select.value);
+          onChange(select.value);
+        });
+        return select;
+      }
+
+      function actionCell(children, note) {
+        const cell = element("div", { className: "action-cell" }, children);
+        if (note) cell.append(element("span", { className: "action-note", text: note }));
+        return cell;
+      }
+
+      // コメント行の対処案。ツリーのどの行にも置き、何もしない選択を既定の一つ目にする。
+      // 役割（通報対象・文脈整理対象）はコメント列だけに出し、この列へ再掲しない。
+      function commentActionCell(item, draft, plan, comment) {
+        const candidates = commentCandidatesFor(item, plan, comment);
+        if (!candidates.length && !isSelectableRow(item, comment)) {
+          return actionCell([], "現在状態を確認できないため、この行は処置対象に選べません。");
+        }
+        const options = [
+          { value: KEEP_ACTION, label: "保持", kind: "keep" },
+          ...candidates.map((candidate) => ({
+            value: candidate.operationId,
+            label: candidate.operationTypeLabel || candidate.operationType,
+            kind: candidate.operationType === "comment_delete" ? "delete" : "restore",
+          })),
+        ];
+        return actionCell([
+          actionSelect(
+            `#${comment.commentNumber} の対処案`,
+            options,
+            draft.commentActions[comment.commentNumber] || KEEP_ACTION,
+            (value) => {
+              draft.commentActions[comment.commentNumber] = value;
+              onDraftChanged(item);
+            },
+          ),
+        ]);
+      }
+
+      function commentLane(item, draft, plan, roles) {
+        const lane = element("div", { className: "lane" });
+        lane.append(
+          element("h3", { className: "lane-title", text: "コメント" }),
+          element("h3", { className: "lane-title", text: "対処案" }),
+        );
+        const comments = item.comments || [];
+        if (!comments.length) {
+          lane.append(
+            element("div", { className: "empty", text: "コメント本文は提供されていません。" }),
+            element("div", { className: "action-cell", text: "—", attrs: { "data-actionable": "false" } }),
+          );
+          return lane;
+        }
+        const byNumber = new Map(comments.map((comment) => [comment.commentNumber, comment]));
+        const lookup = commentTreeLookup(comments);
+        const groupOf = commentGroupResolver(item, comments, lookup);
+        const rows = [
+          ...comments.map((comment) => ({ comment, group: groupOf(comment), withBody: true })),
+          // 本文の無い処置対象も対処案を選べる行として残す。行を落とすと選べない対象ができる。
+          // 出所を判定する手掛かりが無いので、処置対象として同一ツリーへ並べる。
+          ...item.recommendation.targets
+            .filter((target) => !byNumber.has(target.commentNumber))
+            .map((target) => ({ comment: target, group: "同一ツリー", withBody: false })),
+        ];
+        appendGroupedRows(lane, rows, ({ comment, withBody }) => [
+          withBody
+            ? commentBlock(
+                comment,
+                commentDepth(comment, lookup),
+                roles.get(comment.commentNumber) || "",
+                // 役割の付かないコメントは、処置しない前後文脈であることだけを示す。
+                roles.get(comment.commentNumber) || "前後文脈",
+              )
+            : element(
+                "article",
+                {
+                  className: "comment-item",
+                  attrs: { "data-role": roles.get(comment.commentNumber) || "" },
+                },
+                [
+                  element("div", { className: "comment-meta" }, [
+                    element("span", { className: "comment-number", text: commentNumberText(comment) }),
+                    element("span", { className: "comment-state", text: comment.currentState }),
+                  ]),
+                  element("p", { className: "empty", text: "本文はこの一覧に含まれていません。" }),
+                ],
+              ),
+          commentActionCell(item, draft, plan, comment),
+        ]);
+        return lane;
+      }
+
+      // 先に開いておく通報の件数。畳む理由と開き方は、このスクリプト直前の表示範囲が持つ。
+      const VISIBLE_REPORT_COUNT = 3;
+
+      // 通報レーンの見出し。管理画面の通報表が1ページに収まらない単位では、読めた通報が
+      // その単位の全部ではない。読めた件数だけを出すと、他にも通報があることを知らないまま
+      // 判断されるので、読み切れていない事実と、分かる場合の総件数を見出しへ出す。
+      // [report-lane-title:start]
+      function reportLaneTitle(item) {
+        const count = item.reportCount || 0;
+        if (!item.reportsTruncated) return `通報 ${count}件`;
+        if (typeof item.reportTotalCount === "number") {
+          return `通報 ${item.reportTotalCount}件（うち${count}件を表示）`;
+        }
+        return `通報 ${count}件以上（全件を読めていません）`;
+      }
+      // [report-lane-title:end]
+
+      // 通報理由は判断の一次情報なので、要約や言い換えをせず本文のまま出す。通報の内部識別子と
+      // 取得元の注記は承認境界としてサーバーが持つ内部情報で、管理者の判断には使わない。
+      function reportListBlock(item) {
+        const reports = item.reports || [];
+        if (!reports.length) {
+          return element("div", { className: "empty", text: "未処理の通報はありません。" });
+        }
+        {
+          // どの通報がどのコメントに付いたかは、対象が複数ある処理単位でだけ意味を持つ。
+          const showTarget =
+            new Set(reports.map((report) => report.targetCommentNumber).filter(Boolean)).size > 1;
+          const list = element("ul", { className: "report-list" });
+          const hidden = [];
+          reports.forEach((report, index) => {
+            const entry = element("li", { className: "report-item" });
+            if (index >= VISIBLE_REPORT_COUNT) {
+              entry.hidden = true;
+              hidden.push(entry);
+            }
+            entry.append(
+              element("p", { className: "report-reason", text: report.reason || "理由の記載なし" }),
+            );
+            const meta = element("div", { className: "report-meta" });
+            if (report.repeatAfterResponse) {
+              meta.append(element("span", { text: "回答済みの投稿を同じ通報者が再通報" }));
+            }
+            if (showTarget && report.targetCommentNumber) {
+              meta.append(element("span", { text: `対象 #${report.targetCommentNumber}` }));
+            }
+            if (report.createdAt) {
+              meta.append(element("time", { text: report.createdAt, attrs: { datetime: report.createdAt } }));
+            }
+            if (meta.childNodes.length) entry.append(meta);
+            list.append(entry);
+          });
+          if (!hidden.length) return list;
+          // 残りは同じ一覧の中へ開く。開いたあとは畳まず、判断中に消えないようにする。
+          const more = element("button", {
+            className: "more-reports",
+            text: `もっと見る（残り${hidden.length}件）`,
+            attrs: { type: "button" },
+          });
+          more.addEventListener("click", () => {
+            hidden.forEach((entry) => {
+              entry.hidden = false;
+            });
+            more.remove();
+          });
+          const block = element("div", { className: "report-block" });
+          block.append(list, more);
+          return block;
+        }
+      }
+
+      function reportLane(item, draft, plan) {
+        const lane = element("div", { className: "lane" });
+        lane.append(
+          element("h3", { className: "lane-title", text: reportLaneTitle(item) }),
+          element("h3", { className: "lane-title", text: "通報の扱いと判断" }),
+          reportListBlock(item),
+          decisionCell(item, draft, plan),
+        );
+        return lane;
+      }
+
+      // 通報の扱いと、この投稿を送るかどうかを同じ場所で決める。承認の中身は
+      // 各列の選択そのものなので、判断だけを別ブロックへ切り出さない。
+      function decisionCell(item, draft, plan) {
+        const cell = element("div", { className: "action-cell decision-cell" });
+        const options = [
+          { value: NO_REPORT_ACTION, label: "保留", kind: "" },
+          ...plan.report.map((candidate) => ({
+            value: candidate.operationId,
+            label: candidate.operationType === "report_complete" ? "完了" : "無視",
+            kind: candidate.operationType === "report_complete" ? "complete" : "ignore",
+          })),
+        ];
+        const messagesByOperationId = messagesByOperation(item);
+        const messageArea = element("div", { className: "action-messages" });
+        // 完了と無視は同じ列に並ぶが、宣言対象が違えば閉じる通報も違う。対象が複数ある
+        // 単位では、選んだ扱いがどのコメントの通報を閉じるのかを注記へ出す。
+        const reportedNumbers = new Set(
+          plan.report.flatMap((candidate) => candidate.targetCommentNumbers || []),
+        );
+        const note = element("span", { className: "action-note" });
+        // 選んだ扱いへ束縛された本文だけを、その場で書き換えられる形で出す。
+        // 扱いを変えたら本文も入れ替える。送らない本文を編集できるまま残さない。
+        function renderMessages() {
+          const selected = plan.report.find(
+            (candidate) => candidate.operationId === draft.reportOperationId,
+          );
+          messageArea.replaceChildren(
+            ...(messagesByOperationId.get(draft.reportOperationId) || []).map((message) =>
+              messageEditor(item, draft, message, selected?.operationType),
+            ),
+          );
+          const targets = (selected?.targetCommentNumbers || [])
+            .map((value) => `#${value}`)
+            .join("、");
+          note.textContent =
+            reportedNumbers.size > 1 && targets ? `対象 ${targets} の通報を閉じます。` : "";
+        }
+        if (plan.report.length) {
+          cell.append(
+            actionSelect(
+              `投稿 ${item.id} の通報の扱い`,
+              options,
+              draft.reportOperationId,
+              (value) => {
+                draft.reportOperationId = value;
+                renderMessages();
+                onDraftChanged(item);
+              },
+            ),
+            note,
+            messageArea,
+          );
+          renderMessages();
+        } else {
+          cell.append(element("span", { className: "action-note", text: "閉じられる通報はありません。" }));
+        }
+        const choices = element("div", {
+          className: "choice-row",
+          attrs: { role: "group", "aria-label": `${item.id}の判断` },
+        });
+        choices.append(
+          choiceButton(item.id, "approve", "承認"),
+          choiceButton(item.id, "hold", "保留"),
+        );
+        cell.append(
+          element("h4", { className: "decision-title", text: "この投稿の判断" }),
+          choices,
+          element("p", { className: "error", attrs: { "data-preview-error": "", hidden: "" } }),
+        );
+        return cell;
+      }
+
+      // 投稿者と接続元への措置は投稿履歴を見て決める。履歴の中身は既定で畳み、
+      // 件数だけを出す。
+      function historyDetails(item) {
+        const history = item.history || [];
+        const details = element("details", { className: "history-details" });
+        details.append(
+          element("summary", { text: `確認した過去投稿（${history.length}件）` }),
+        );
+        if (history.length) {
+          const historyList = element("div", { className: "history-list" });
+          history.forEach((comment) => historyList.append(commentBlock(comment)));
+          details.append(historyList);
+        } else {
+          details.append(element("p", { className: "empty", text: "投稿履歴は確認していません。" }));
+        }
+        return details;
+      }
+
+      function historyLane(item, draft, plan) {
+        const lane = element("div", { className: "lane" });
+        lane.append(
+          element("h3", { className: "lane-title", text: "投稿履歴" }),
+          element("h3", { className: "lane-title", text: "投稿規制" }),
+          historyDetails(item),
+          authorActionCell(item, draft, plan),
+        );
+        return lane;
+      }
+
+      function authorActionCell(item, draft, plan) {
+        if (!plan.author.length) {
+          return actionCell([], "この一覧では投稿規制を選べません。");
+        }
+        const options = [
+          { value: NO_AUTHOR_ACTION, label: "なし", kind: "" },
+          ...plan.author.map((candidate) => ({
+            value: candidate.operationId,
+            label: candidate.operationType === "author_auto_ignore" ? "自動無視" : "ブロック",
+            kind: candidate.operationType === "author_auto_ignore" ? "ignore" : "delete",
+          })),
+        ];
+        // 投稿者・接続元への措置は、サーバーが決めた一つのanchorコメントの投稿者へ効く。
+        // どの投稿者かは列の見出しからは分からないので、対象番号と実行経路を注記へ出し、
+        // 選び直すたびに更新する。選択を変えてもカードは組み直されないため、
+        // 静的な文字列では選択と食い違ったままになる。
+        const note = element("span", { className: "action-note" });
+        function renderNote() {
+          const selected = plan.author.find(
+            (candidate) => candidate.operationId === draft.authorOperationId,
+          );
+          if (!selected) {
+            note.textContent = "";
+            return;
+          }
+          const targets = (selected.targetCommentNumbers || [])
+            .map((value) => `#${value}`)
+            .join("、");
+          // ブロックはMCPから送信できず、ブラウザ経路で実行する。承認時に分かるようにする。
+          const route =
+            selected.operationType === "source_block" ? "　実行はブラウザ経路になります。" : "";
+          note.textContent = `${targets ? `対象 ${targets} の投稿者。` : ""}${route}`;
+        }
+        const cell = actionCell([
+          actionSelect(
+            `投稿 ${item.id} の投稿規制`,
+            options,
+            draft.authorOperationId,
+            (value) => {
+              draft.authorOperationId = value;
+              renderNote();
+              onDraftChanged(item);
+            },
+          ),
+        ]);
+        renderNote();
+        cell.append(note);
+        return cell;
+      }
+
+      function operationOfMessage(item) {
+        const byMessageId = new Map();
+        item.recommendation.operationCandidates.forEach((candidate) => {
+          (candidate.messageIds || []).forEach((messageId) => byMessageId.set(messageId, candidate));
+        });
+        return byMessageId;
+      }
+
+      function messagesByOperation(item) {
+        const owners = operationOfMessage(item);
+        const byOperationId = new Map();
+        item.recommendation.messages.forEach((message) => {
+          const owner = owners.get(message.messageId);
+          if (!owner) return;
+          const bound = byOperationId.get(owner.operationId) || [];
+          bound.push(message);
+          byOperationId.set(owner.operationId, bound);
+        });
+        return byOperationId;
+      }
+
+      // 提案された本文は束縛先の操作の隣に置き、その場で書き換えられるようにする。
+      // 書き換えなければ維持、操作を外せば送信しないとして扱い、扱いの選択を求めない。
+      function messageEditor(item, draft, message, operationType) {
+        const wrap = element("div", { className: "row-message" });
+        const head = element("div", { className: "row-message-head" });
+        head.append(element("strong", { text: message.label }));
+        const body = element("textarea", {
+          attrs: { maxlength: "4000", "aria-label": `${message.label}の送信本文` },
+        });
+        body.value = draft.messageEdits[message.messageId]?.text ?? message.text;
+        // 対象が先に削除済みだった場合に代わりに送る本文。承認時に一緒に確定させるので、
+        // 同じ本文の一部として並べる。
+        const hasAlreadyDeleted = typeof message.alreadyDeletedText === "string";
+        const alreadyDeletedHead = hasAlreadyDeleted
+          ? element("div", { className: "row-message-head" }, [
+              element("strong", { text: `${message.label}（対象が先に削除済みだった場合）` }),
+            ])
+          : null;
+        const alreadyDeletedBody = hasAlreadyDeleted
+          ? element("textarea", {
+              attrs: {
+                maxlength: "4000",
+                "aria-label": `${message.label}の、対象が先に削除済みだった場合の送信本文`,
+              },
+            })
+          : null;
+        if (alreadyDeletedBody) {
+          alreadyDeletedBody.value =
+            draft.messageEdits[message.messageId]?.alreadyDeletedText ?? message.alreadyDeletedText;
+        }
+        const required = operationType === "public_notice";
+        let omitInput = null;
+        if (!required) {
+          omitInput = element("input", { attrs: { type: "checkbox" } });
+          omitInput.checked = Boolean(draft.messageEdits[message.messageId]?.omit);
+          const omitLabel = element("label", { className: "omit-toggle" }, [
+            omitInput,
+            element("span", { text: "送信しない" }),
+          ]);
+          head.append(omitLabel);
+        }
+        function saveMessageEdit() {
+          const omit = Boolean(omitInput?.checked);
+          body.disabled = omit;
+          if (alreadyDeletedBody) alreadyDeletedBody.disabled = omit;
+          wrap.dataset.omitted = omit ? "true" : "false";
+          const alreadyDeletedText = alreadyDeletedBody?.value;
+          if (
+            !omit &&
+            body.value === message.text &&
+            (!hasAlreadyDeleted || alreadyDeletedText === message.alreadyDeletedText)
+          ) {
+            delete draft.messageEdits[message.messageId];
+          } else {
+            draft.messageEdits[message.messageId] = {
+              text: body.value,
+              omit,
+              ...(hasAlreadyDeleted ? { alreadyDeletedText } : {}),
+            };
+          }
+          onDraftChanged(item);
+        }
+        body.addEventListener("input", saveMessageEdit);
+        alreadyDeletedBody?.addEventListener("input", saveMessageEdit);
+        omitInput?.addEventListener("change", saveMessageEdit);
+        body.disabled = Boolean(omitInput?.checked);
+        if (alreadyDeletedBody) alreadyDeletedBody.disabled = Boolean(omitInput?.checked);
+        wrap.dataset.omitted = omitInput?.checked ? "true" : "false";
+        wrap.append(head, body);
+        if (alreadyDeletedBody) wrap.append(alreadyDeletedHead, alreadyDeletedBody);
+        return wrap;
+      }
+
+      // どの列にも属さない、処理単位全体へ効く操作だけを残す。
+      function otherOperationsBlock(item, draft, plan) {
+        if (!plan.other.length) return null;
+        const fieldset = element("fieldset", { className: "other-operations" });
+        fieldset.append(element("legend", { text: "この投稿への追加操作" }));
+        const list = element("ul", { className: "editor-list" });
+        const messagesByOperationId = messagesByOperation(item);
+        function renderRows() {
+          const rows = plan.other.map((candidate, candidateIndex) => {
+            const controlId = `operation-${item.id}-${candidateIndex}`;
+            const isSelected = draft.otherOperationIds.includes(candidate.operationId);
+            const checkbox = element("input", {
+              attrs: { type: "checkbox", id: controlId, value: candidate.operationId },
+            });
+            checkbox.checked = isSelected;
+            checkbox.addEventListener("change", () => {
+              if (checkbox.checked) {
+                draft.otherOperationIds.push(candidate.operationId);
+              } else {
+                draft.otherOperationIds = draft.otherOperationIds.filter(
+                  (value) => value !== candidate.operationId,
+                );
+              }
+              onDraftChanged(item);
+              renderRows();
+            });
+            const label = element("label", { attrs: { for: controlId } }, [
+              element("strong", {
+                text: candidate.operationTypeLabel || candidate.operationType,
+              }),
+              element("small", {
+                text: `対象 ${(candidate.targetCommentNumbers || []).map((value) => `#${value}`).join("、")}`,
+              }),
+            ]);
+            const row = element("li", { className: "editor-row" }, [checkbox, label]);
+            // 実行しない操作の本文は送られないため、行からも隠す。
+            if (isSelected) {
+              (messagesByOperationId.get(candidate.operationId) || []).forEach((message) => {
+                row.append(messageEditor(item, draft, message, candidate.operationType));
+              });
+            }
+            return row;
+          });
+          list.replaceChildren(...rows);
+        }
+        renderRows();
+        fieldset.append(list);
+        return fieldset;
+      }
+
+      // 推奨案どおりの選択値。復元した下書きと比べる基準にもなるので、下書きとは別に作る。
+      function recommendedSelection(item) {
+        const plan = candidatePlan(item);
+        const recommended = new Set(item.recommendation.operationIds);
+        const commentActions = {};
+        const commentsById = new Map(
+          (item.comments || []).map((comment) => [comment.commentNumber, comment]),
+        );
+        const rows = [
+          ...(item.comments || []),
+          ...item.recommendation.targets.filter(
+            (target) => !commentsById.has(target.commentNumber),
+          ),
+        ];
+        rows.forEach((row) => {
+          const candidate = commentCandidatesFor(item, plan, row).find(
+            (entry) =>
+              recommended.has(entry.operationId) &&
+              (entry.targetCommentNumbers || []).includes(row.commentNumber),
+          );
+          commentActions[row.commentNumber] = candidate ? candidate.operationId : KEEP_ACTION;
+        });
+        const reportCandidate = plan.report.find((candidate) =>
+          recommended.has(candidate.operationId),
+        );
+        const authorCandidate = plan.author.find((candidate) =>
+          recommended.has(candidate.operationId),
+        );
+        return {
+          commentActions,
+          reportOperationId: reportCandidate ? reportCandidate.operationId : NO_REPORT_ACTION,
+          authorOperationId: authorCandidate ? authorCandidate.operationId : NO_AUTHOR_ACTION,
+          otherOperationIds: plan.other
+            .filter((candidate) => recommended.has(candidate.operationId))
+            .map((candidate) => candidate.operationId),
+          messageEdits: {},
+        };
+      }
+
+      // 推奨案と同じ選択かどうかは、承認の中身を決める。値の集合だけを安定した順序で見る。
+      function selectionSignature(value) {
+        const byKey = (left, right) => (left[0] < right[0] ? -1 : 1);
+        return JSON.stringify([
+          Object.entries(value.commentActions || {}).sort(byKey),
+          value.reportOperationId,
+          value.authorOperationId,
+          [...(value.otherOperationIds || [])].sort(),
+          Object.entries(value.messageEdits || {})
+            .map(([messageId, edit]) => [messageId, edit?.omit ? "omit" : edit?.text])
+            .sort(byKey),
+        ]);
+      }
+
+      function draftFor(item) {
+        if (!state.drafts[item.id]) {
+          state.drafts[item.id] = {
+            ...recommendedSelection(item),
+            resolvedPlan: null,
+            resolvedPlanToken: null,
+          };
+        }
+        return state.drafts[item.id];
+      }
+
+      function isChangedDraft(item, draft) {
+        return selectionSignature(draft) !== selectionSignature(recommendedSelection(item));
+      }
+
+      // 管理者に扱いを選ばせず、行の選択と編集後の本文から扱いを決める。
+      // 実行しない操作へ束縛された本文は送らず、書き換えていない本文は維持する。
+      function structuredChanges(item, draft) {
+        const plan = candidatePlan(item);
+        const selectedOperationIds = [];
+        const operationTargets = [];
+        const targetNumbers = new Set();
+
+        plan.comment.forEach((candidate) => {
+          const targets = Object.entries(draft.commentActions)
+            .filter(([, operationId]) => operationId === candidate.operationId)
+            .map(([commentNumber]) => commentNumber);
+          if (!targets.length) return;
+          selectedOperationIds.push(candidate.operationId);
+          // コメント行の選択がそのまま対象になる。保持を選んだ行は操作から外れ、
+          // 通報を閉じるためだけに対象として残る場合も削除されない。
+          operationTargets.push({
+            operationId: candidate.operationId,
+            targetCommentNumbers: targets,
+          });
+          targets.forEach((commentNumber) => targetNumbers.add(commentNumber));
+        });
+
+        [
+          plan.report.find((candidate) => candidate.operationId === draft.reportOperationId),
+          plan.author.find((candidate) => candidate.operationId === draft.authorOperationId),
+          ...plan.other.filter((candidate) =>
+            draft.otherOperationIds.includes(candidate.operationId),
+          ),
+        ]
+          .filter(Boolean)
+          .forEach((candidate) => {
+            selectedOperationIds.push(candidate.operationId);
+            (candidate.targetCommentNumbers || []).forEach((commentNumber) =>
+              targetNumbers.add(commentNumber),
+            );
+          });
+
+        // 外部操作が一つも残らない選択は、実行しない宣言として送る。
+        if (!selectedOperationIds.length && plan.noop) {
+          selectedOperationIds.push(plan.noop.operationId);
+          (plan.noop.targetCommentNumbers || []).forEach((commentNumber) =>
+            targetNumbers.add(commentNumber),
+          );
+        }
+
+        const selected = new Set(selectedOperationIds);
+        const owners = operationOfMessage(item);
+        const messageChanges = [];
+        item.recommendation.messages.forEach((message) => {
+          const owner = owners.get(message.messageId);
+          const edit = draft.messageEdits[message.messageId];
+          if (!owner || !selected.has(owner.operationId) || edit?.omit) {
+            messageChanges.push({ messageId: message.messageId, action: "omit" });
+            return;
+          }
+          const text = edit?.text ?? message.text;
+          // 代替本文を持つ本文は、片方だけを書き換えてももう片方を落とさない。
+          const hasAlreadyDeleted = typeof message.alreadyDeletedText === "string";
+          const alreadyDeletedText = hasAlreadyDeleted
+            ? edit?.alreadyDeletedText ?? message.alreadyDeletedText
+            : undefined;
+          if (
+            text !== message.text ||
+            (hasAlreadyDeleted && alreadyDeletedText !== message.alreadyDeletedText)
+          ) {
+            messageChanges.push({
+              messageId: message.messageId,
+              action: "replace",
+              replacement: {
+                label: message.label,
+                text,
+                ...(hasAlreadyDeleted ? { alreadyDeletedText } : {}),
+              },
+            });
+          }
+        });
+
+        // 対象の並びはサーバーの正規化順（処置対象候補、次にコメントツリー）に合わせる。
+        const order = [
+          ...item.recommendation.targets.map((target) => target.commentNumber),
+          ...(item.comments || []).map((comment) => comment.commentNumber),
+        ];
+        const seen = new Set();
+        const selectedTargetCommentNumbers = order.filter((commentNumber) => {
+          if (seen.has(commentNumber) || !targetNumbers.has(commentNumber)) return false;
+          seen.add(commentNumber);
+          return true;
+        });
+
+        return {
+          selectedTargetCommentNumbers,
+          selectedOperationIds,
+          ...(operationTargets.length ? { operationTargets } : {}),
+          messageChanges,
+        };
+      }
+
+      function cardParts(itemId) {
+        const card = cards.querySelector(`[data-id="${CSS.escape(itemId)}"]`);
+        return { card, error: card?.querySelector("[data-preview-error]") || null };
+      }
+
+      // 行の選択を変えた時点で承認の中身が変わる。表示済みの完全案とトークンを捨て、
+      // 変更後の内容をサーバーへ解決させ直す。
+      function onDraftChanged(item) {
+        const draft = draftFor(item);
+        draft.resolvedPlan = null;
+        draft.resolvedPlanToken = null;
+        const { error } = cardParts(item.id);
+        if (error) error.hidden = true;
+        window.clearTimeout(previewTimers.get(item.id));
+        previewTimers.delete(item.id);
+        if (isChangedDraft(item, draft)) {
+          previewTimers.set(
+            item.id,
+            window.setTimeout(() => {
+              previewTimers.delete(item.id);
+              runPreview(item);
+            }, PREVIEW_DELAY_MS),
+          );
+        }
+        syncCard(item.id);
+        persist();
+        updateProgress();
+        applyFilter();
+      }
+
+      async function runPreview(item) {
+        const draft = draftFor(item);
+        const { error } = cardParts(item.id);
+        const changes = structuredChanges(item, draft);
+        function fail(message) {
+          draft.resolvedPlan = null;
+          draft.resolvedPlanToken = null;
+          if (error) {
+            error.textContent = message;
+            error.hidden = false;
+          }
+          updateProgress();
+        }
+        if (!changes.selectedOperationIds.length || !changes.selectedTargetCommentNumbers.length) {
+          fail("この選択では送れる内容になりません。何も行わない場合は保留を選んでください。");
+          return;
+        }
+        try {
+          const result = await callTool("preview_moderation_decision", {
+            batchId: state.batch.batchId,
+            snapshotToken: state.batch.snapshotToken,
+            itemId: item.id,
+            changes,
+          });
+          const resolved = structuredOf(result);
+          if (
+            resolved?.batchId !== state.batch.batchId ||
+            resolved?.snapshotToken !== state.batch.snapshotToken ||
+            resolved?.itemId !== item.id ||
+            !resolved.resolvedPlan ||
+            !/^[0-9a-f]{64}$/u.test(resolved.resolvedPlanToken || "")
+          ) {
+            throw new Error("サーバーから一致する解決済み完全案を取得できませんでした。");
+          }
+          // 解決の間に選択が変わっていれば、その結果は今の画面の承認内容ではない。
+          if (JSON.stringify(structuredChanges(item, draft)) !== JSON.stringify(changes)) return;
+          draft.resolvedPlan = resolved.resolvedPlan;
+          draft.resolvedPlanToken = resolved.resolvedPlanToken;
+          if (error) error.hidden = true;
+        } catch (cause) {
+          fail(messageOf(cause));
+          return;
+        }
+        persist();
+        updateProgress();
+      }
+
+      function createCard(item, index, total) {
+        const draft = draftFor(item);
+        const plan = candidatePlan(item);
+        const roles = commentRoles(item);
+        const card = element("article", {
+          className: "card",
+          attrs: { "data-id": item.id, "data-choice": "undecided" },
+        });
+        const head = element("header", { className: "card-head" });
+        const heading = element("div");
+        const kicker = element("div", { className: "card-kicker" });
+        kicker.append(
+          element("span", { className: "card-index", text: `案件 ${index + 1} / ${total}` }),
+          element("span", { className: "status-chip", text: "未選択", attrs: { "data-status": "" } }),
+        );
+        const postLine = element("div", { className: "post-line" });
+        postLine.append(element("h2", { text: item.title || `投稿 ${item.id}` }));
+        const judgment = element("details", { className: "judgment-details" });
+        judgment.append(
+          element("summary", { text: "適用した基準" }),
+          listBlock("適用した基準", item.basis),
+        );
+        heading.append(kicker, postLine, judgment);
+        const links = element("div", { className: "links" });
+        if (item.publicUrl) links.append(link("公開画面", item.publicUrl));
+        if (item.adminUrl) links.append(link("管理画面", item.adminUrl));
+        head.append(heading, links);
+
+        // 判断材料と対処案を同じ行へ並べる。コメント、通報、投稿履歴を読みながらその場で選ぶ。
+        const body = element("div", { className: "card-body" });
+        body.append(
+          commentLane(item, draft, plan, roles),
+          reportLane(item, draft, plan),
+          historyLane(item, draft, plan),
+        );
+        const otherOperations = otherOperationsBlock(item, draft, plan);
+        if (otherOperations) body.append(otherOperations);
+        card.append(head, body);
+        return card;
+      }
+
+      function link(label, href) {
+        return element("a", { text: label, attrs: { href, target: "_blank", rel: "noreferrer" } });
+      }
+
+      function choiceButton(itemId, choice, label) {
+        const button = element("button", {
+          className: "choice",
+          text: label,
+          attrs: { type: "button", "data-choice": choice, "aria-pressed": "false" },
+        });
+        button.addEventListener("click", () => selectChoice(itemId, choice));
+        return button;
+      }
+
+      function selectChoice(itemId, choice) {
+        if (state.submitted) return;
+        state.decisions[itemId] = { choice };
+        syncCard(itemId);
+        persist();
+        updateProgress();
+        applyFilter();
+      }
+
+      // 承認は一つだが、承認の中身は行の選択が推奨案と同じかどうかで決まる。
+      function effectiveChoice(itemId) {
+        const decision = state.decisions[itemId];
+        if (!decision) return "undecided";
+        if (decision.choice !== "approve") return decision.choice;
+        const item = state.batch?.items.find((entry) => entry.id === itemId);
+        const draft = state.drafts[itemId];
+        return item && draft && isChangedDraft(item, draft) ? "alternative" : "approve";
+      }
+
+      function syncCard(itemId) {
+        const card = cards.querySelector(`[data-id="${CSS.escape(itemId)}"]`);
+        if (!card) return;
+        const selected = effectiveChoice(itemId);
+        card.dataset.choice = selected;
+        const statusLabels = { undecided: "未選択", approve: "承認", hold: "保留", alternative: "変更して承認" };
+        card.querySelector("[data-status]").textContent = statusLabels[selected];
+        const pressed = state.decisions[itemId]?.choice || "";
+        card.querySelectorAll(".choice").forEach((button) => {
+          button.setAttribute("aria-pressed", button.dataset.choice === pressed ? "true" : "false");
+          button.disabled = state.submitted;
+        });
+        if (state.submitted) {
+          // 通報の続きを開くのは表示操作なので、送信後も押せるままにする。
+          card
+            .querySelectorAll("button:not(.more-reports), input, select, textarea")
+            .forEach((control) => {
+              control.disabled = true;
+            });
+        }
+      }
+
+      function counts() {
+        const total = state.batch?.items?.length || 0;
+        const effective = Object.keys(state.decisions).map(effectiveChoice);
+        const approve = effective.filter((value) => value === "approve").length;
+        const hold = effective.filter((value) => value === "hold").length;
+        const alternative = effective.filter((value) => value === "alternative").length;
+        return { total, approve, hold, alternative, decided: approve + hold + alternative, undecided: total - approve - hold - alternative };
+      }
+
+      function updateProgress() {
+        const value = counts();
+        $("#count-undecided").textContent = `未選択 ${value.undecided}`;
+        $("#count-approve").textContent = `承認 ${value.approve}`;
+        $("#count-hold").textContent = `保留 ${value.hold}`;
+        $("#count-alternative").textContent = `変更して承認 ${value.alternative}`;
+        const progress = $(".progress-track");
+        const percentage = value.total ? (value.decided / value.total) * 100 : 0;
+        progress.setAttribute("aria-valuemax", String(value.total));
+        progress.setAttribute("aria-valuenow", String(value.decided));
+        $("#progress-fill").style.width = `${percentage}%`;
+        $("#next-undecided").disabled = state.submitted || value.undecided === 0;
+        const submit = $("#review-submit");
+        const pendingChange = Object.keys(state.decisions).some(
+          (itemId) =>
+            effectiveChoice(itemId) === "alternative" && !state.drafts[itemId]?.resolvedPlanToken,
+        );
+        submit.disabled = state.submitted || value.decided === 0 || pendingChange;
+        $("#submit-title").textContent = state.submitted
+          ? "判断を送信しました"
+          : `${value.decided} / ${value.total}件を選択`;
+        $("#submit-detail").textContent = pendingChange
+          ? "変更した投稿は、変更後の内容をサーバーで確認できてから送信できます。"
+          : `推奨どおり承認 ${value.approve}・変更して承認 ${value.alternative}・保留 ${value.hold}。未選択 ${value.undecided}件は実行されません。`;
+        submit.textContent = state.submitted ? "送信済み" : "選択内容を確認";
+      }
+
+      // [widget-state:start]
+      function widgetStateSnapshot(value) {
+        const decisions = {};
+        for (const [itemId, decision] of Object.entries(value.decisions || {})) {
+          // 承認の中身は行の選択から決まるため、保存するのは承認と保留だけとする。
+          const choice = decision?.choice === "alternative" ? "approve" : decision?.choice;
+          if (["approve", "hold"].includes(choice)) decisions[itemId] = { choice };
+        }
+        const drafts = {};
+        for (const [itemId, draft] of Object.entries(value.drafts || {})) {
+          const messageEdits = {};
+          for (const [messageId, edit] of Object.entries(draft?.messageEdits || {})) {
+            // 編集後の本文はホスト保存へ出さず、再入力を必須にする。
+            if (edit?.omit) messageEdits[messageId] = { omit: true };
+          }
+          const commentActions = {};
+          for (const [commentNumber, action] of Object.entries(draft?.commentActions || {})) {
+            if (typeof action === "string") commentActions[commentNumber] = action;
+          }
+          drafts[itemId] = {
+            commentActions,
+            reportOperationId:
+              typeof draft?.reportOperationId === "string" ? draft.reportOperationId : "none",
+            authorOperationId:
+              typeof draft?.authorOperationId === "string" ? draft.authorOperationId : "none",
+            otherOperationIds: Array.isArray(draft?.otherOperationIds)
+              ? [...draft.otherOperationIds]
+              : [],
+            messageEdits,
+          };
+        }
+        return {
+          batchId: value.batchId,
+          snapshotToken: value.snapshotToken,
+          decisions,
+          drafts,
+          submitted: Boolean(value.submitted),
+          filter: value.filter,
+        };
+      }
+      // [widget-state:end]
+
+      function persist() {
+        window.openai?.setWidgetState?.(widgetStateSnapshot({
+          batchId: state.batch?.batchId,
+          snapshotToken: state.batch?.snapshotToken,
+          decisions: state.decisions,
+          drafts: state.drafts,
+          submitted: state.submitted,
+          filter: state.filter,
+        }));
+      }
+
+      function restore(batch) {
+        const saved = window.openai?.widgetState;
+        if (!saved || saved.batchId !== batch.batchId || saved.snapshotToken !== batch.snapshotToken) return;
+        const restored = widgetStateSnapshot(saved);
+        state.decisions = restored.decisions;
+        state.drafts = Object.fromEntries(
+          Object.entries(restored.drafts).map(([itemId, draft]) => [
+            itemId,
+            {
+              ...draft,
+              commentActions: { ...draft.commentActions },
+              messageEdits: { ...draft.messageEdits },
+              // widgetStateは表示最適化であり承認の正本ではない。復元した完全案と
+              // トークンの対応をクライアント側では証明できないため再解決する。
+              resolvedPlan: null,
+              resolvedPlanToken: null,
+            },
+          ]),
+        );
+        state.submitted = Boolean(restored.submitted || batch.submission);
+        state.filter = restored.filter || "all";
+      }
+
+      function failLoad(message) {
+        state.batch = null;
+        state.decisions = {};
+        state.drafts = {};
+        state.loadingIdentity = null;
+        cards.replaceChildren();
+        $("#filter-empty").hidden = true;
+        $("#load-status").hidden = false;
+        $("#load-status").textContent = message;
+        $("#review-submit").disabled = true;
+        $("#submit-title").textContent = "一覧を読み込めません";
+        $("#submit-detail").textContent = "部分的な内容では承認できません。会話へ戻り、一覧を再表示してください。";
+      }
+
+      function stopToolResultWait() {
+        if (toolResultTimer === null) return;
+        window.clearTimeout(toolResultTimer);
+        toolResultTimer = null;
+      }
+
+      // 通知が来ない失敗（ホストが対処案を配らない、配り方が想定と違う）を、
+      // 無言の待機ではなく操作できない旨の案内として出す。
+      function startToolResultWait() {
+        stopToolResultWait();
+        toolResultTimer = window.setTimeout(() => {
+          toolResultTimer = null;
+          if (state.batch || state.loadingIdentity) return;
+          failLoad("ホストから対処案が届きませんでした。会話へ戻り、一覧の再表示を依頼してください。");
+        }, TOOL_RESULT_WAIT_MS);
+      }
+
+      async function loadBatchSummary(summary) {
+        stopToolResultWait();
+        if (
+          !summary ||
+          typeof summary.batchId !== "string" ||
+          !/^[0-9a-f]{64}$/u.test(summary.snapshotToken || "") ||
+          !Number.isInteger(summary.itemCount) ||
+          summary.itemCount < 1 ||
+          summary.expired ||
+          summary.submission
+        ) {
+          failLoad("一覧の識別情報が不完全か、すでに承認できない状態です。会話へ戻り、一覧を再表示してください。");
+          return;
+        }
+        const identity = `${summary.batchId}:${summary.snapshotToken}`;
+        if (
+          state.batch?.batchId === summary.batchId &&
+          state.batch?.snapshotToken === summary.snapshotToken
+        ) return;
+        if (state.loadingIdentity === identity) return;
+        state.loadingIdentity = identity;
+        $("#load-status").hidden = false;
+        $("#load-status").textContent = "保存済みの完全な一覧を照合しています…";
+        try {
+          const result = await callTool("get_moderation_review_snapshot", {
+            batchId: summary.batchId,
+            snapshotToken: summary.snapshotToken,
+          });
+          const batch = structuredOf(result);
+          if (
+            batch?.batchId !== summary.batchId ||
+            batch?.snapshotToken !== summary.snapshotToken ||
+            !Array.isArray(batch.items) ||
+            batch.items.length !== summary.itemCount ||
+            batch.items.some(
+              (item) =>
+                item.recommendedResolvedPlan?.itemId !== item.id ||
+                !/^[0-9a-f]{64}$/u.test(item.recommendedResolvedPlanToken || ""),
+            ) ||
+            batch.expired ||
+            batch.submission
+          ) {
+            throw new Error("保存済みスナップショットが一覧の識別情報と一致しません。");
+          }
+          loadBatch(batch);
+        } catch (cause) {
+          if (state.loadingIdentity !== identity) return;
+          failLoad(`完全な一覧を取得できませんでした（${messageOf(cause)}）。`);
+        }
+      }
+
+      function loadBatch(batch) {
+        if (!batch?.items || !Array.isArray(batch.items)) {
+          throw new Error("保存済み一覧に処理単位がありません。");
+        }
+        $("#load-status").hidden = true;
+        if (state.batch?.batchId === batch.batchId && state.batch?.snapshotToken === batch.snapshotToken) {
+          state.batch = batch;
+          if (batch.submission) state.submitted = true;
+          updateProgress();
+          return;
+        }
+        state.batch = batch;
+        state.decisions = {};
+        state.drafts = {};
+        state.submitted = false;
+        state.loadingIdentity = null;
+        restore(batch);
+        const checkedAt = $("#checked-at");
+        checkedAt.textContent = formatCheckedAt(batch.createdAt);
+        checkedAt.dateTime = batch.createdAt || "";
+        cards.replaceChildren(...batch.items.map((item, index) => createCard(item, index, batch.items.length)));
+        batch.items.forEach((item) => syncCard(item.id));
+        // 復元した選択が推奨案と違う場合も、完全案とトークンはこの画面で取り直す。
+        batch.items.forEach((item) => {
+          const draft = state.drafts[item.id];
+          if (draft && isChangedDraft(item, draft)) onDraftChanged(item);
+        });
+        $("#filter").value = state.filter;
+        updateProgress();
+        applyFilter();
+      }
+
+      function applyFilter() {
+        const filter = state.filter;
+        let visibleCount = 0;
+        cards.querySelectorAll(".card").forEach((card) => {
+          const choice = card.dataset.choice || "undecided";
+          card.hidden = filter !== "all" && filter !== choice;
+          if (!card.hidden) visibleCount += 1;
+        });
+        $("#filter-empty").hidden = visibleCount !== 0;
+        persist();
+      }
+
+      function buildDecisions() {
+        return Object.entries(state.decisions).map(([itemId, value]) => {
+          if (value.choice === "hold") return { itemId, choice: "hold" };
+          const item = state.batch.items.find((entry) => entry.id === itemId);
+          const draft = state.drafts[itemId];
+          // 行の選択が推奨案のままなら推奨案の承認、変わっていれば代替案として送る。
+          if (!draft || !isChangedDraft(item, draft)) {
+            return {
+              itemId,
+              choice: "approve",
+              resolvedPlanToken: item.recommendedResolvedPlanToken,
+            };
+          }
+          return {
+            itemId,
+            choice: "alternative",
+            changes: structuredChanges(item, draft),
+            resolvedPlanToken: draft.resolvedPlanToken,
+          };
+        });
+      }
+
+      $("#filter").addEventListener("change", (event) => {
+        state.filter = event.target.value;
+        applyFilter();
+      });
+
+      $("#next-undecided").addEventListener("click", () => {
+        const undecided = cards.querySelector('.card[data-choice="undecided"]:not([hidden])')
+          || cards.querySelector('.card[data-choice="undecided"]');
+        if (!undecided) return;
+        undecided.scrollIntoView({ behavior: "smooth", block: "center" });
+        undecided.querySelector(".choice")?.focus({ preventScroll: true });
+      });
+
+      // allow-modalsが無いサンドボックスではshowModal()が失敗する。show()で開いた場合は
+      // 背景が操作できてしまうため、可視化・フォーカス移動・Escでの閉じるを自前で補う。
+      let dialogFallback = false;
+
+      function openConfirmDialog() {
+        dialogFallback = false;
+        $("#cancel-submit").textContent = "戻る";
+        try {
+          dialog.showModal();
+        } catch (cause) {
+          dialogFallback = true;
+          dialog.show();
+          // 非モーダルは通常フロー位置に出るため、画面外のままになりうる。
+          dialog.scrollIntoView({ block: "center" });
+        }
+        $("#confirm-submit").focus({ preventScroll: true });
+      }
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || !dialogFallback || !dialog.open) return;
+        event.preventDefault();
+        dialog.close();
+      });
+
+      dialog.addEventListener("close", () => {
+        dialogFallback = false;
+        $("#review-submit").focus({ preventScroll: true });
+      });
+
+      $("#review-submit").addEventListener("click", () => {
+        const value = counts();
+        $("#confirm-summary").textContent = `推奨どおり承認 ${value.approve}件、変更して承認 ${value.alternative}件、保留 ${value.hold}件を送信します。未選択 ${value.undecided}件は送信しません。`;
+        $("#dialog-error").classList.remove("notice");
+        $("#dialog-error").hidden = true;
+        openConfirmDialog();
+      });
+
+      $("#cancel-submit").addEventListener("click", () => dialog.close());
+      function messageOf(cause) {
+        return cause instanceof Error ? cause.message : String(cause);
+      }
+
+      $("#confirm-submit").addEventListener("click", async () => {
+        const button = $("#confirm-submit");
+        const error = $("#dialog-error");
+        button.disabled = true;
+        button.dataset.busy = "true";
+        error.classList.remove("notice");
+        error.hidden = true;
+        try {
+          const result = await callTool("submit_moderation_decisions", {
+            batchId: state.batch.batchId,
+            snapshotToken: state.batch.snapshotToken,
+            decisions: buildDecisions(),
+          });
+          const next = structuredOf(result);
+          if (next?.batchId !== state.batch.batchId || !next?.submission) {
+            throw new Error("判断の保存結果を確認できませんでした。会話へ戻り、バッチの状態を確認してください。");
+          }
+          state.submitted = true;
+          state.batch.items.forEach((item) => syncCard(item.id));
+          persist();
+          updateProgress();
+        } catch (cause) {
+          // 送信自体が失敗した場合だけ再送信を許す。
+          error.textContent = messageOf(cause);
+          error.hidden = false;
+          button.disabled = false;
+          button.dataset.busy = "false";
+          return;
+        }
+
+        // ここから先は送信済み。アプリから会話へメッセージを送るAPIは、ホスト側で
+        // 新しいユーザー入力の確認を出す。レビューの最終確認と二重になるため呼ばない。
+        // 保存済み判断は元のタスクがget_moderation_reviewで読み戻す。
+        button.dataset.busy = "false";
+        button.textContent = "送信済み";
+        $("#confirm-title").textContent = "判断を保存しました";
+        $("#cancel-submit").textContent = "閉じる";
+        error.classList.add("notice");
+        error.textContent = `判断を保存しました。これが実行許可です。追加の許可は不要です。この画面を閉じ、元のタスクで「バッチ ${state.batch.batchId} の承認済み操作を実行してください」と伝えてください。`;
+        error.hidden = false;
+      });
+
+      // [report-mode:start]
+      // 結果報告は、同じ一覧から編集する要素を落とした読み取り専用表示にする。
+      // 判断はすでに保存済みなので、この画面はホストへもサーバーへも一切呼び出さない。
+      const EXECUTION_STATUS_LABELS = {
+        confirmed: "実行を確認",
+        no_action_needed: "対応不要（実行前に達成済み）",
+        dispatching: "送信済み・結果不明",
+        unknown: "結果不明",
+        ready: "未送信",
+      };
+
+      function stepStatusLabel(step) {
+        if (step.journalMismatch) return "実行記録が承認内容と一致しません";
+        return EXECUTION_STATUS_LABELS[step.status] || "未実行";
+      }
+
+      function stepStatusKind(step) {
+        if (step.journalMismatch) return "mismatch";
+        return step.status || "none";
+      }
+
+      // [report-status:start]
+      // 実行許可を作った判断。自律処理は推奨案の承認だけだが、管理者が承認した一覧では
+      // 代替案の承認も同じく実行される。実行状態を出す対象からこれを落とさない。
+      const REPORT_AUTHORIZING_CHOICES = ["approve", "alternative"];
+
+      // 単位の見出しに出す状態。実行できなかった操作と結果の分からない操作を、
+      // 実行済みと同じ見た目へ寄せない。
+      function reportUnitStatus(unit) {
+        if (unit.choice === "hold") return { label: "保留", choice: "hold" };
+        if (!REPORT_AUTHORIZING_CHOICES.includes(unit.choice)) {
+          return { label: "判断なし", choice: "attention" };
+        }
+        if (unit.steps.some((step) => step.journalMismatch)) {
+          return { label: "記録の不一致", choice: "attention" };
+        }
+        if (!unit.steps.length) return { label: "外部操作なし", choice: "approve" };
+        // 送信せずに確定した操作も、承認内容として決着している。未実行と混ぜない。
+        const settled = (step) =>
+          step.status === "confirmed" || step.status === "no_action_needed";
+        if (unit.steps.every((step) => step.status === "no_action_needed")) {
+          return { label: "対応不要", choice: "approve" };
+        }
+        if (unit.steps.every(settled)) {
+          return { label: "実行済み", choice: "approve" };
+        }
+        if (unit.steps.some((step) => step.status === "dispatching" || step.status === "unknown")) {
+          return { label: "結果不明", choice: "attention" };
+        }
+        // 一部だけ実行できた単位を未実行と書くと、確認済みの操作までやり直しの対象に見える。
+        if (unit.steps.some(settled)) {
+          return { label: "一部実行", choice: "attention" };
+        }
+        return { label: "未実行", choice: "hold" };
+      }
+      // [report-status:end]
+
+      function reportActionCell(steps, emptyNote) {
+        const cell = element("div", { className: "action-cell" });
+        if (!steps.length) {
+          cell.dataset.actionable = "false";
+          cell.append(element("span", { text: emptyNote }));
+          return cell;
+        }
+        steps.forEach((step) => {
+          const line = element("div", { className: "action-line" });
+          line.append(
+            element("strong", { text: step.operationTypeLabel }),
+            element("span", {
+              className: "action-status",
+              text: stepStatusLabel(step),
+              attrs: { "data-status": stepStatusKind(step) },
+            }),
+          );
+          if (step.reportCount) {
+            line.append(
+              element("span", { className: "action-note", text: `対象通報 ${step.reportCount}件` }),
+            );
+          }
+          step.messages.forEach((message) => {
+            line.append(
+              element("h4", { className: "sent-message-label", text: message.label }),
+              element("p", { className: "sent-message", text: message.text }),
+            );
+            if (typeof message.alreadyDeletedText === "string") {
+              line.append(
+                element("h4", {
+                  className: "sent-message-label",
+                  text: `${message.label}（対象が先に削除済みだった場合）`,
+                }),
+                element("p", { className: "sent-message", text: message.alreadyDeletedText }),
+              );
+            }
+          });
+          cell.append(line);
+        });
+        return cell;
+      }
+
+      function reportStepsFor(unit, operationTypes, commentNumber) {
+        return unit.steps.filter(
+          (step) =>
+            operationTypes.includes(step.operationType) &&
+            (commentNumber === undefined || step.targetCommentNumber === commentNumber),
+        );
+      }
+
+      function reportCommentLane(unit, roles) {
+        const item = unit.item;
+        const lane = element("div", { className: "lane" });
+        lane.append(
+          element("h3", { className: "lane-title", text: "コメント" }),
+          element("h3", { className: "lane-title", text: "実行した操作" }),
+        );
+        const comments = item.comments || [];
+        const byNumber = new Map(comments.map((comment) => [comment.commentNumber, comment]));
+        const lookup = commentTreeLookup(comments);
+        const groupOf = commentGroupResolver(item, comments, lookup);
+        const rows = [
+          ...comments.map((comment) => ({
+            comment,
+            depth: commentDepth(comment, lookup),
+            group: groupOf(comment),
+          })),
+          ...item.recommendation.targets
+            .filter((target) => !byNumber.has(target.commentNumber))
+            .map((target) => ({ comment: target, depth: 0, group: "同一ツリー" })),
+        ];
+        if (!rows.length) {
+          lane.append(
+            element("div", { className: "empty", text: "コメント本文は提供されていません。" }),
+            element("div", { className: "action-cell", text: "—", attrs: { "data-actionable": "false" } }),
+          );
+          return lane;
+        }
+        appendGroupedRows(lane, rows, ({ comment, depth }) => {
+          const role = roles.get(comment.commentNumber) || "";
+          const block = comment.body
+            ? commentBlock(comment, depth, role, role || "前後文脈")
+            : element("article", { className: "comment-item", attrs: { "data-role": role } }, [
+                element("div", { className: "comment-meta" }, [
+                  element("span", { className: "comment-number", text: commentNumberText(comment) }),
+                  element("span", { className: "comment-state", text: comment.currentState || "" }),
+                ]),
+                element("p", { className: "empty", text: "本文はこの一覧に含まれていません。" }),
+              ]);
+          return [
+            block,
+            reportActionCell(
+              reportStepsFor(unit, COMMENT_OPERATION_TYPES, comment.commentNumber),
+              "このコメントへの操作はありません。",
+            ),
+          ];
+        });
+        return lane;
+      }
+
+      function createReportCard(unit, index, total) {
+        const item = unit.item;
+        const status = reportUnitStatus(unit);
+        const card = element("article", {
+          className: "card",
+          attrs: { "data-id": item.id, "data-choice": status.choice },
+        });
+        const head = element("header", { className: "card-head" });
+        const heading = element("div");
+        const kicker = element("div", { className: "card-kicker" });
+        kicker.append(
+          element("span", { className: "card-index", text: `案件 ${index + 1} / ${total}` }),
+          element("span", { className: "status-chip", text: status.label }),
+        );
+        const postLine = element("div", { className: "post-line" });
+        postLine.append(element("h2", { text: item.title || `投稿 ${item.id}` }));
+        const judgment = element("details", { className: "judgment-details" });
+        judgment.append(
+          element("summary", { text: "適用した基準" }),
+          element("ul", {}, (item.basis || []).map((text) => element("li", { text }))),
+        );
+        heading.append(kicker, postLine, judgment);
+        const links = element("div", { className: "links" });
+        if (item.publicUrl) links.append(link("公開画面", item.publicUrl));
+        if (item.adminUrl) links.append(link("管理画面", item.adminUrl));
+        head.append(heading, links);
+
+        const body = element("div", { className: "card-body" });
+        const roles = commentRoles(item);
+        const reportLaneBlock = element("div", { className: "lane" });
+        reportLaneBlock.append(
+          element("h3", { className: "lane-title", text: reportLaneTitle(item) }),
+          element("h3", { className: "lane-title", text: "通報の扱い" }),
+          reportListBlock(item),
+          reportActionCell(
+            reportStepsFor(unit, REPORT_OPERATION_TYPES),
+            "通報を閉じる操作はありません。",
+          ),
+        );
+        const historyLaneBlock = element("div", { className: "lane" });
+        historyLaneBlock.append(
+          element("h3", { className: "lane-title", text: "投稿履歴" }),
+          element("h3", { className: "lane-title", text: "投稿規制" }),
+          historyDetails(item),
+          reportActionCell(
+            reportStepsFor(unit, AUTHOR_OPERATION_TYPES),
+            "投稿規制の操作はありません。",
+          ),
+        );
+        body.append(reportCommentLane(unit, roles), reportLaneBlock, historyLaneBlock);
+        // どの列にも属さない操作は、単位全体への追加操作としてまとめて出す。
+        const laneTypes = [
+          ...COMMENT_OPERATION_TYPES,
+          ...REPORT_OPERATION_TYPES,
+          ...AUTHOR_OPERATION_TYPES,
+        ];
+        const otherSteps = unit.steps.filter((step) => !laneTypes.includes(step.operationType));
+        if (otherSteps.length) {
+          const other = element("fieldset", { className: "other-operations" });
+          other.append(element("legend", { text: "この投稿への追加操作" }));
+          other.append(reportActionCell(otherSteps, ""));
+          body.append(other);
+        }
+        card.append(head, body);
+        return card;
+      }
+
+      function reportSectionCounts(section) {
+        const labels = section.units.map((unit) => reportUnitStatus(unit).label);
+        const counted = new Map();
+        labels.forEach((label) => counted.set(label, (counted.get(label) || 0) + 1));
+        return [...counted.entries()].map(([label, count]) => `${label} ${count}件`).join("・");
+      }
+
+      function renderReport(report) {
+        // 編集できる要素は隠さず取り除く。保存されたファイルに送信経路を残さない。
+        document.querySelector(".toolbar")?.remove();
+        document.querySelector(".submit-dock")?.remove();
+        document.querySelector("#confirm-dialog")?.remove();
+        $("#load-status").hidden = true;
+        $("#filter-empty").hidden = true;
+
+        const executed = report.executed;
+        $(".eyebrow").textContent = report.displayName || "ZAWAZAWA";
+        const checkedAt = $("#checked-at");
+        checkedAt.textContent = formatCheckedAt(executed.createdAt);
+        checkedAt.dateTime = executed.createdAt || "";
+        $("#batch-title").textContent = "自律処理の結果";
+
+        $("#report-executed-section").hidden = false;
+        $("#report-executed-note").replaceChildren(
+          checkedAt,
+          document.createTextNode(` ／ ${reportSectionCounts(executed)}`),
+        );
+        // 一覧の自由なタイトルはWiki名・日付を重ねるため表示しない。
+        const record = element("details", { className: "judgment-details" }, [
+          element("summary", { text: "実行記録の識別情報" }),
+          element("p", { className: "report-note", text: `バッチ ${executed.batchId}` }),
+        ]);
+        $("#report-executed-section").append(record);
+        if (executed.blockedDependencyGroups?.length) {
+          const blocked = $("#report-executed-blocked");
+          blocked.hidden = false;
+          blocked.textContent = `依存グループ ${executed.blockedDependencyGroups
+            .map((group) => group.group)
+            .join("、")} は、共有する処置を部分的に実行しないため実行対象から外れています。`;
+        }
+        cards.replaceChildren(
+          ...executed.units.map((unit, index) =>
+            createReportCard(unit, index, executed.units.length),
+          ),
+        );
+      }
+      // [report-mode:end]
+
+      function applyHostContext(hostContext) {
+        const theme = hostContext?.theme;
+        if (theme === "light" || theme === "dark") {
+          document.documentElement.style.colorScheme = theme;
+        }
+      }
+
+      async function initializeHost() {
+        // window.openaiを持つホストはツール出力を直接渡すため、ハンドシェイクを行わない。
+        if (window.openai) {
+          // toolOutputは読み込み時点で未設定のことがあり、その場合は後からglobalsが配られる。
+          window.addEventListener("openai:set_globals", () => {
+            if (window.openai?.toolOutput) loadBatchSummary(window.openai.toolOutput);
+          });
+          if (window.openai.toolOutput) loadBatchSummary(window.openai.toolOutput);
+          return;
+        }
+        const App = window.McpApps?.App;
+        if (!App) {
+          // SDKが埋め込まれていないHTMLは、接続できないまま操作させない。
+          failLoad("一覧UIの読み込みに失敗しました。会話へ戻り、一覧の再表示を依頼してください。");
+          return;
+        }
+        app = new App({ name: "zawazawa-moderation-review", version: "0.2.0" });
+        // 受信の登録はconnectより前に済ませる。接続直後の通知を取りこぼさないため。
+        app.ontoolresult = (params) => loadBatchSummary(params?.structuredContent);
+        app.onhostcontextchanged = (params) => applyHostContext(params?.hostContext ?? params);
+        try {
+          await app.connect();
+          applyHostContext(app.getHostContext());
+          startToolResultWait();
+        } catch (cause) {
+          $("#load-status").textContent =
+            "ホストと接続できませんでした。会話へ戻り、一覧の再表示を依頼してください。";
+        }
+      }
+
+      // 結果報告として書き出されたHTMLはホストを持たない。判断を集める経路へ入らない。
+      if (window.__zawazawaReport) {
+        renderReport(window.__zawazawaReport);
+      } else {
+        initializeHost();
+      }
+    })();
+  </script>
+</body>
+</html>

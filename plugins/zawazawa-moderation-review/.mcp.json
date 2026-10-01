@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "zawazawa-moderation-review": {
+      "command": "node",
+      "args": ["./server/server.mjs"],
+      "cwd": ".",
+      "tool_timeout_sec": 300
+    }
+  }
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZAWAZAWA Moderation"
+  short_description: "リポジトリ基準でZAWAZAWA通報を承認付きで調査・対処"
+  default_prompt: "Use $zawazawa-moderation to review a ZAWAZAWA report using this repository’s moderation policies."

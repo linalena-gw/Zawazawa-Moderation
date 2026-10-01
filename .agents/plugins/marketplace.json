@@ -1,0 +1,20 @@
+{
+  "name": "zawazawa-moderation",
+  "interface": {
+    "displayName": "ZAWAZAWA Moderation"
+  },
+  "plugins": [
+    {
+      "name": "zawazawa-moderation-review",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zawazawa-moderation-review"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

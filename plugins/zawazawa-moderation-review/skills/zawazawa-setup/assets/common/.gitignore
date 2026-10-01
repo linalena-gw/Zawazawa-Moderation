@@ -1,0 +1,6 @@
+# 投稿本文と通報理由を含むため共有しない。
+moderation-reports/
+
+.DS_Store
+Thumbs.db
+desktop.ini

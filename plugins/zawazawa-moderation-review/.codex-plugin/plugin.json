@@ -1,0 +1,38 @@
+{
+  "name": "zawazawa-moderation-review",
+  "version": "0.2.0",
+  "description": "Investigate ZAWAZAWA reports with repository policies and review proposals in a single interactive approval list.",
+  "author": {
+    "name": "ZAWAZAWA Moderation contributors"
+  },
+  "repository": "https://github.com/linalena-gw/Zawazawa-Moderation",
+  "license": "MIT",
+  "keywords": [
+    "zawazawa",
+    "moderation",
+    "review",
+    "approval"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ZAWAZAWA Moderation Review",
+    "shortDescription": "Investigate reports and review proposals in one safe workflow.",
+    "longDescription": "Uses repository-specific policies to investigate ZAWAZAWA reports, then shows up to 100 proposals at once so an administrator can approve, hold, or approve a server-resolved structured alternative for each post. Snapshot-bound decisions and the append-only execution journal never change ZAWAZAWA by themselves.",
+    "developerName": "ZAWAZAWA Moderation contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Use $zawazawa-setup to set up ZAWAZAWA moderation interactively without editing configuration files.",
+      "Investigate unresolved ZAWAZAWA reports using this repository's moderation policies.",
+      "Show all investigated ZAWAZAWA reports in one review list.",
+      "Let me approve, hold, or revise each moderation proposal."
+    ],
+    "brandColor": "#31594F",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": []
+  },
+  "mcpServers": "./.mcp.json"
+}

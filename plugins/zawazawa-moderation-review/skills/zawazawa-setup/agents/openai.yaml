@@ -1,0 +1,4 @@
+interface:
+  display_name: "ZAWAZAWA Setup"
+  short_description: "対話だけでZAWAZAWA通報対応の初回設定を安全に整える"
+  default_prompt: "Use $zawazawa-setup to set up ZAWAZAWA moderation interactively without editing configuration files."

@@ -1,0 +1,24 @@
+{
+  "name": "zawazawa-moderation-review",
+  "version": "0.2.0",
+  "description": "Investigate ZAWAZAWA reports with repository policies and review proposals in a single interactive approval list.",
+  "author": {
+    "name": "ZAWAZAWA Moderation contributors"
+  },
+  "repository": "https://github.com/linalena-gw/Zawazawa-Moderation",
+  "license": "MIT",
+  "keywords": [
+    "zawazawa",
+    "moderation",
+    "review",
+    "approval"
+  ],
+  "mcpServers": {
+    "zawazawa-moderation-review": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/server/server.mjs"
+      ]
+    }
+  }
+}
