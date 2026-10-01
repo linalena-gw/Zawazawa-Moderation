@@ -15,9 +15,26 @@ import { TARGET_CONFIG_FILENAME } from "../server/target-config.mjs";
 const serverPath = fileURLToPath(new URL("../server/server.mjs", import.meta.url));
 const loaderPath = new URL("../test-support/mock-connector-loader.mjs", import.meta.url).href;
 
+const fixtureResources = new WeakMap();
+
+function resourcesFor(context) {
+  if (!fixtureResources.has(context)) {
+    const resources = { clients: [], directories: [] };
+    fixtureResources.set(context, resources);
+    context.after(async () => {
+      // Windowsでは子プロセスのcwdを削除できない。作成順によらず先に全クライアントを閉じる。
+      for (const client of resources.clients) await client.close();
+      for (const directory of resources.directories) {
+        rmSync(directory, { recursive: true, force: true });
+      }
+    });
+  }
+  return fixtureResources.get(context);
+}
+
 function temporaryDirectory(context, prefix) {
   const directory = mkdtempSync(join(tmpdir(), prefix));
-  context.after(() => rmSync(directory, { recursive: true, force: true }));
+  resourcesFor(context).directories.push(directory);
   return directory;
 }
 
@@ -60,7 +77,7 @@ async function startInstalledServer(context, { cwd }) {
     { name: "installed-plugin-test", version: "0.1.0" },
     { capabilities: { extensions: { [EXTENSION_ID]: { mimeTypes: [RESOURCE_MIME_TYPE] } } } },
   );
-  context.after(() => client.close());
+  resourcesFor(context).clients.push(client);
   await client.connect(transport);
   return client;
 }
