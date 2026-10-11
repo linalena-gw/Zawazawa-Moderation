@@ -9,6 +9,7 @@
   "scripts": {
     "test": "npm run verify",
     "verify": "node --test && node scripts/verify-release.mjs",
+    "check:dependencies": "node scripts/check-dependencies.mjs",
     "start": "node server/server.mjs",
     "diagnose:mcp": "node scripts/diagnose-mcp.mjs",
     "postinstall": "playwright-core install chromium",

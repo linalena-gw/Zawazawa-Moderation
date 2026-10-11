@@ -48,9 +48,10 @@ node '<skillRoot>/scripts/init-workspace.mjs' --destination '<絶対パス>' --a
 この工程も`pluginRoot`を作業ディレクトリにする。運用フォルダや公開リポジトリで`npm ci`を実行しない。Windowsでは以下のnpm操作で`npm`を`npm.cmd`に読み替える。
 
 1. `npm ls --depth=0`でインストール済みの直接依存関係を確認する。さらにプラグインの`package.json`にある直接依存関係と、`package-lock.json`の`packages[""].dependencies`の宣言が一致することを確認する。`npm ls`だけではlockfileとmanifestの整合性は確認できない。
-2. 依存関係が欠けている、無効な依存関係がある、またはmanifestとlockfileの宣言が食い違う場合に限り、`npm ci`を一度実行する。`npm ci`は`node_modules`を作り直し、lockfileに従って依存関係を取得し、postinstallでChromiumを導入することがある。依存関係とlockfileが既に整合していれば実行しない。セットアップ中のソフトウェア導入と必要な外部通信を利用者が既に承認している場合、その承認を再度求めず実行する。まだ承認されていない場合は、実行前にnpmパッケージ取得を含む導入承認を得る。
-3. `npm ci`が成功したら、`npm ls --depth=0`とmanifest・lockfileの宣言を再確認する。失敗した場合は成功扱いにせず、原因を示して止める。失敗がChromiumのpostinstallだけで、依存関係とlockfileは有効だと確認できた場合に限り、次の専用Chromium手順を使う。
-4. `playwright-core`のPlaywright APIで`chromium.executablePath()`を取得して実行ファイルの存在を確認し、`chromium.launch({ headless: true })`と`browser.close()`が成功することを確認する。依存関係が有効なのにChromiumだけが無い場合は、`pluginRoot`で次を一度実行する。`npm ci`でChromiumまで利用可能になった場合はこのインストールを繰り返さない。
+2. `node ./scripts/check-dependencies.mjs`も実行する（`npm run check:dependencies`でも実行できる）。この確認はMCPサーバーと診断スクリプトが使う実際の依存関係entrypointを、サーバーを起動せずにimportする。MCP Appsのブラウザ用バンドルはimportせず、解決と読み取り可能性だけを確かめる。結果には安全なカテゴリ、package名、entrypoint、error codeだけが出る。Windowsでは`npm.cmd`を使う。`npm`または`npm.cmd`がPATHにない場合は、公式Node.js導入先の絶対パスで`npm.cmd`を呼び、カレントディレクトリを正確な`pluginRoot`にする。Codexが使う`node`とnpm側のNode.jsが異なる場合は、同じスクリプトをCodex側の`node`と、選んだ`npm.cmd`の隣にある`node.exe`の両方で実行し、両方の結果を確認する。
+3. 依存関係が欠けている、無効な依存関係がある、manifestとlockfileの宣言が食い違う、または実際のimport確認が失敗した場合は、同じ`pluginRoot`で`npm ci`を一度実行して再確認する。ただし、このセットアップ中に同じ`pluginRoot`と現在のlockfileで`npm ci`が既に成功していれば、繰り返し実行せず、両Node.jsで出た安全なentrypointとerror codeを比べる。依存関係・lockfile確認と実際のimport確認がすべて成功していれば`npm ci`は実行しない。`npm ci`は`node_modules`を作り直し、lockfileに従って依存関係を取得し、postinstallでChromiumを導入することがある。セットアップ中のソフトウェア導入と必要な外部通信を利用者が既に承認している場合、その承認を再度求めず実行する。まだ承認されていない場合は、実行前にnpmパッケージ取得を含む導入承認を得る。
+4. `npm ci`が成功したら、`npm ls --depth=0`、manifest・lockfileの宣言、実際のimport確認を再実行する。いずれかが失敗した場合は成功扱いにせず、表示された安全なカテゴリとentrypoint、error codeを示して止める。`npm ci`自体が失敗した場合も成功扱いにしない。失敗がChromiumのpostinstallだけで、依存関係、lockfile、実際のimport確認は有効だと確認できた場合に限り、次の専用Chromium手順を使う。
+5. `playwright-core`のPlaywright APIで`chromium.executablePath()`を取得して実行ファイルの存在を確認し、`chromium.launch({ headless: true })`と`browser.close()`が成功することを確認する。依存関係が有効なのにChromiumだけが無い場合は、`pluginRoot`で次を一度実行する。`npm ci`でChromiumまで利用可能になった場合はこのインストールを繰り返さない。
 
 ```sh
 node ./node_modules/playwright-core/cli.js install chromium
