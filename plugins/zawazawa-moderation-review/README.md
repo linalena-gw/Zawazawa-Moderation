@@ -6,19 +6,17 @@ ZAWAZAWAの通報を読み取り、実行先Wikiの運用基準に沿った対�
 
 ## 使い始める
 
-初回は、Codexでは`$zawazawa-setup`、Claude Codeでは`/zawazawa-moderation-review:zawazawa-setup`を呼び、「ZAWAZAWA通報対応を初期設定して」と依頼します。セットアップは次を確認し、足りない情報だけを尋ねます。
+Codexデスクトップでのプラグイン導入と専用フォルダの用意は、[リポジトリのREADME](../../README.md)を参照してください。この文書は、プラグインをインストールして有効にした後の設定と利用を説明します。
 
-1. macOSまたはWindows、Node.js 24 LTS、npm、lockfileの依存関係、専用Chromium
-2. 新しいWiki運用フォルダ、`restricted`固定の対象設定、確認済みの運用基準
-3. 専用ブラウザでの管理者本人のログイン
+専用の空フォルダをCodexでローカルプロジェクトとして開き、新しいチャットで`$zawazawa-setup`を呼びます。セットアップはNode.js 24 LTS、npm、lockfileの依存関係、専用Chromiumを確認し、不足している依存関係とChromiumを必要な場合に導入します。その後、`restricted`モードの設定と運用基準を作り、専用ブラウザで管理者本人がログインして読み取り専用接続を確認します。完了を確認するまでは通報の対処を始めないでください。
 
-依存関係の導入には`npm ci`を使います。再認証が必要な場合は、プラグインディレクトリで次を実行し、専用ブラウザでログインして対象グループを確認します。普段使うブラウザのCookieは使いません。
+依存関係の導入には`npm ci`を使います。詳細な停止条件と、運用基準テンプレートを対象Wikiに合わせて確認・編集する手順は[`zawazawa-setup`の手順](./skills/zawazawa-setup/references/setup-flow.md)を参照してください。
+
+再認証が必要な場合は、プラグインディレクトリで次を実行し、専用ブラウザでログインして対象グループを確認します。普段使うブラウザのCookieは使いません。
 
 ```bash
 npm run auth:zawazawa -- <グループキー>
 ```
-
-詳しい停止条件と、生成した運用基準の確認・編集手順は[`zawazawa-setup`の手順](./skills/zawazawa-setup/references/setup-flow.md)にあります。
 
 ## 対象グループの設定
 
