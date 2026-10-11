@@ -9,6 +9,9 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+# Keep returned paths and JSON intact when a Windows user folder contains non-ASCII text.
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)
+$OutputEncoding = [Console]::OutputEncoding
 $selected = [int]$Prepare.IsPresent + [int]$PrintRoot.IsPresent + [int]$PrintNode.IsPresent
 if ($RunScript) { $selected++ }
 if ($selected -gt 1) { throw 'Choose one bootstrap operation.' }

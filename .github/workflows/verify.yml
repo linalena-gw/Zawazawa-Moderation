@@ -58,7 +58,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $env:ZAWAZAWA_HOME_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-bootstrap'
+          $env:ZAWAZAWA_HOME_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-bootstrap-日本語'
           $env:CODEX_HOME = Join-Path $env:RUNNER_TEMP 'zawazawa-codex'
           $env:ZAWAZAWA_REVIEW_STORE_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-reviews'
           $env:ZAWAZAWA_CONNECTOR_PROFILE_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-profile'
