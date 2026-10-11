@@ -311,7 +311,7 @@ const autonomousDecisionSchema = z
   .strict();
 
 const server = new McpServer(
-  { name: "zawazawa-moderation-review", version: "0.2.0" },
+  { name: "zawazawa-moderation-review", version: "0.2.1" },
   {
     instructions:
       "Call these tools from the zawazawa-moderation skill, which carries the workflow and what every approval and result means. Each tool description carries that tool's own inputs, returned fields, and constraints.",
