@@ -1,4 +1,6 @@
 import { access, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
+import { execFile as execFileCallback } from "node:child_process";
+import { promisify } from "node:util";
 import { homedir, platform as hostPlatform, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +15,8 @@ const MINIMUM_NODE_MAJOR = 24;
 const MCP_TIMEOUT_MS = 20_000;
 const MAX_STDERR_BYTES = 16 * 1024;
 const IS_INSTALLED_CACHE = /(?:^|[/\\])plugins[/\\]cache[/\\]/iu.test(PLUGIN_ROOT);
+const execFile = promisify(execFileCallback);
+const DIRECT_SERVER_ENV = "ZAWAZAWA_DIAGNOSTIC_DIRECT_SERVER";
 const SDK_CLIENT_SPECIFIERS = [
   "@modelcontextprotocol/sdk/client/index.js",
   "@modelcontextprotocol/sdk/client/stdio.js",
@@ -171,7 +175,7 @@ export function createSafeReport({
     },
     scope: "isolated_startup",
     invocation: "direct_process",
-    check: "packaged_manifest_stdio",
+    check: process.env[DIRECT_SERVER_ENV] === "1" ? "prepared_runtime_stdio" : "packaged_manifest_stdio",
     realStorageWriteCheck: "not_performed",
     elapsedMs,
     isInstalledCache: IS_INSTALLED_CACHE,
@@ -256,6 +260,12 @@ async function runDiagnostic() {
     const metadata = await readPackagedMetadata();
     const { server } = metadata;
     pluginVersion = metadata.pluginVersion;
+    if (process.env[DIRECT_SERVER_ENV] === "1") {
+      // Already delegated to the prepared runtime; avoid recursively invoking its launcher.
+      server.command = process.execPath;
+      server.args = ["./server/server.mjs"];
+      server.cwd = PLUGIN_ROOT;
+    }
 
     // Resolve the caller's real defaults first. This is intentionally a read-only check: the
     // values are discarded before a child process can create anything in an operational folder.
@@ -383,7 +393,33 @@ async function runDiagnostic() {
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : null;
 const invokedRealPath = invokedPath ? await realpath(invokedPath).catch(() => null) : null;
 if (invokedRealPath === fileURLToPath(import.meta.url)) {
-  const report = await runDiagnostic();
+  let report;
+  const startedAt = Date.now();
+  let metadata;
+  try { metadata = await readPackagedMetadata(); } catch { /* Normal diagnostic reports metadata failures. */ }
+  const usesLauncher = metadata?.server.args.some((arg) => arg.replaceAll("\\", "/").endsWith("scripts/runtime-launcher.mjs"));
+  if (usesLauncher && process.env[DIRECT_SERVER_ENV] !== "1") {
+    try {
+      const { stdout: rootOutput } = await execFile(process.execPath, [join(PLUGIN_ROOT, "scripts", "runtime-launcher.mjs"), "--print-root"], {
+        timeout: 20_000, maxBuffer: 64 * 1024, windowsHide: true,
+      });
+      const runtimeRoot = rootOutput.trim();
+      const { stdout } = await execFile(process.execPath, [join(runtimeRoot, "scripts", "diagnose-mcp.mjs")], {
+        env: { ...process.env, [DIRECT_SERVER_ENV]: "1" },
+        timeout: 30_000, maxBuffer: 64 * 1024, windowsHide: true,
+      });
+      report = JSON.parse(stdout);
+    } catch (error) {
+      try { report = JSON.parse(error.stdout); } catch {
+        report = createSafeReport({
+          phase: "runtime_setup", errorCategory: "runtime_not_prepared",
+          pluginVersion: metadata.pluginVersion, elapsedMs: Date.now() - startedAt,
+        });
+      }
+    }
+  } else {
+    report = await runDiagnostic();
+  }
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   if (report.result !== "success") process.exitCode = 1;
 }

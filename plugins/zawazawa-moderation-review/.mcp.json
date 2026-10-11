@@ -2,7 +2,7 @@
   "mcpServers": {
     "zawazawa-moderation-review": {
       "command": "node",
-      "args": ["./server/server.mjs"],
+      "args": ["./scripts/runtime-launcher.mjs"],
       "cwd": ".",
       "tool_timeout_sec": 300
     }

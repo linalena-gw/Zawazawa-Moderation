@@ -1,6 +1,6 @@
 {
   "name": "zawazawa-moderation-review",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Local MCP Apps UI for reviewing ZAWAZAWA moderation proposals.",
@@ -10,11 +10,12 @@
     "test": "npm run verify",
     "verify": "node --test && node scripts/verify-release.mjs",
     "check:dependencies": "node scripts/check-dependencies.mjs",
-    "start": "node server/server.mjs",
+    "start": "node scripts/runtime-launcher.mjs",
     "diagnose:mcp": "node scripts/diagnose-mcp.mjs",
     "postinstall": "playwright-core install chromium",
     "auth:zawazawa": "node scripts/zawazawa-auth.mjs",
-    "preview": "node scripts/preview-server.mjs"
+    "preview": "node scripts/preview-server.mjs",
+    "runtime:prepare": "node scripts/runtime-launcher.mjs --prepare"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "1.7.5",

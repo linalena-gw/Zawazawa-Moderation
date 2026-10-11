@@ -81,3 +81,22 @@ export function defaultConnectorProfileDirectory({
   }
   return unsupportedPlatform(platform);
 }
+
+export function defaultRuntimeDirectory({
+  env = process.env,
+  platform = hostPlatform(),
+  home = homedir(),
+} = {}) {
+  const explicit = explicitDirectory(env, "ZAWAZAWA_RUNTIME_DIR", platform);
+  const directory = explicit ?? (platform === "darwin"
+    ? join(home, "Library", "Application Support", "ZAWAZAWA Moderation Review", "runtimes")
+    : platform === "win32"
+      ? win32.join(windowsLocalAppData(env), "ZAWAZAWA Moderation Review", "runtimes")
+      : unsupportedPlatform(platform));
+  // Runtime code and native dependencies require a local drive on Windows.
+  // Operational document/profile overrides retain their existing UNC support.
+  if (platform === "win32" && !/^[a-z]:[\\/]/iu.test(directory)) {
+    throw new Error("ZAWAZAWA_RUNTIME_DIRはWindowsのローカルドライブの絶対パスで指定してください。");
+  }
+  return directory;
+}

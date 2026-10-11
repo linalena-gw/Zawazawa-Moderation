@@ -28,17 +28,20 @@ export function verifyReleaseMetadata() {
   const claudeManifest = json(join(pluginRoot, ".claude-plugin", "plugin.json"));
   const codexMarketplace = json(join(repositoryRoot, ".agents", "plugins", "marketplace.json"));
   const claudeMarketplace = json(join(repositoryRoot, ".claude-plugin", "marketplace.json"));
+  const mcpManifest = json(join(pluginRoot, ".mcp.json"));
   const version = packageJson.version;
   const pluginName = packageJson.name;
   const repository = "https://github.com/linalena-gw/Zawazawa-Moderation";
 
-  assertEqual(version, "0.2.1", "公開版version");
+  assertEqual(version, "0.3.0", "公開版version");
   assertEqual(packageLock.version, version, "package-lock version");
   assertEqual(packageLock.packages?.[""]?.version, version, "package-lock root version");
   assertEqual(codexManifest.version, version, "Codex manifest version");
   assertEqual(claudeManifest.version, version, "Claude manifest version");
   assertEqual(codexManifest.name, pluginName, "Codex plugin name");
   assertEqual(claudeManifest.name, pluginName, "Claude plugin name");
+  assertEqual(mcpManifest.mcpServers?.[pluginName]?.args?.[0], "./scripts/runtime-launcher.mjs", "Codex persistent runtime launcher");
+  assertEqual(claudeManifest.mcpServers?.[pluginName]?.args?.[0], "${CLAUDE_PLUGIN_ROOT}/scripts/runtime-launcher.mjs", "Claude persistent runtime launcher");
   assertEqual(packageJson.repository, repository, "package repository");
   assertEqual(codexManifest.repository, repository, "Codex repository");
   assertEqual(claudeManifest.repository, repository, "Claude repository");

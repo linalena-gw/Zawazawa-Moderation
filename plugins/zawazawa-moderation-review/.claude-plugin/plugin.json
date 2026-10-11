@@ -1,6 +1,6 @@
 {
   "name": "zawazawa-moderation-review",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Investigate ZAWAZAWA reports with repository policies and review proposals in a single interactive approval list.",
   "author": {
     "name": "ZAWAZAWA Moderation contributors"
@@ -17,7 +17,7 @@
     "zawazawa-moderation-review": {
       "command": "node",
       "args": [
-        "${CLAUDE_PLUGIN_ROOT}/server/server.mjs"
+        "${CLAUDE_PLUGIN_ROOT}/scripts/runtime-launcher.mjs"
       ]
     }
   }

@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   defaultConnectorProfileDirectory,
   defaultReviewStoreDirectory,
+  defaultRuntimeDirectory,
 } from "../server/platform-paths.mjs";
 
 test("macOSは既存のレビュー保存先と認証プロファイルを維持する", () => {
@@ -23,6 +24,22 @@ test("macOSは既存のレビュー保存先と認証プロファイルを維持
       "chrome-profile",
     ),
   );
+});
+
+test("runtime defaults stay outside the plugin cache on supported platforms", () => {
+  assert.equal(defaultRuntimeDirectory({ platform: "darwin", home: "/Users/example", env: {} }),
+    join("/Users/example", "Library", "Application Support", "ZAWAZAWA Moderation Review", "runtimes"));
+  assert.equal(defaultRuntimeDirectory({ platform: "win32", env: { LOCALAPPDATA: "C:\\Local" } }),
+    win32.join("C:\\Local", "ZAWAZAWA Moderation Review", "runtimes"));
+});
+
+test("Windows runtime rejects UNC overrides while operational directories accept them", () => {
+  const unc = "\\\\example\\share\\runtime";
+  assert.throws(() => defaultRuntimeDirectory({ platform: "win32", env: { ZAWAZAWA_RUNTIME_DIR: unc } }), /ローカルドライブ/u);
+  assert.throws(() => defaultRuntimeDirectory({ platform: "win32", env: { LOCALAPPDATA: unc } }), /ローカルドライブ/u);
+  assert.equal(defaultReviewStoreDirectory({ platform: "win32", env: { ZAWAZAWA_REVIEW_STORE_DIR: unc } }), unc);
+  assert.equal(defaultRuntimeDirectory({ platform: "win32", env: { ZAWAZAWA_RUNTIME_DIR: "D:\\runtime" } }), "D:\\runtime");
+  assert.throws(() => defaultRuntimeDirectory({ platform: "linux", env: { ZAWAZAWA_RUNTIME_DIR: "relative" } }), /絶対パス/u);
 });
 
 test("WindowsはLOCALAPPDATA配下のベンダー中立な保存先を使う", () => {

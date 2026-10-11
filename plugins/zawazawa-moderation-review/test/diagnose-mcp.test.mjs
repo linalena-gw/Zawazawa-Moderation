@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
+import { createRuntimeFixture } from "./runtime-fixture.mjs";
 import {
   classifyDiagnosticFailure,
   createSafeReport,
@@ -18,12 +19,13 @@ import {
 const execFile = promisify(execFileCallback);
 const diagnosticScript = fileURLToPath(new URL("../scripts/diagnose-mcp.mjs", import.meta.url));
 
-test("diagnostic connects through the packaged manifest and lists the server tools", async () => {
+test("isolated server diagnostics list tools after dependencies are available", async () => {
   const directory = await mkdtemp(join(tmpdir(), "zawazawa-mcp-diagnostic-test-"));
   const env = {
     ...process.env,
     ZAWAZAWA_REVIEW_STORE_DIR: join(directory, "caller-store"),
     ZAWAZAWA_CONNECTOR_PROFILE_DIR: join(directory, "caller-profile"),
+    ZAWAZAWA_DIAGNOSTIC_DIRECT_SERVER: "1",
   };
   delete env.ZAWAZAWA_TARGET_CONFIG;
 
@@ -40,10 +42,10 @@ test("diagnostic connects through the packaged manifest and lists the server too
     assert.equal(report.result, "success");
     assert.equal(report.phase, "tools");
     assert.equal(report.runtime.nodeSupported, true);
-    assert.equal(report.runtime.pluginVersion, "0.2.1");
+    assert.equal(report.runtime.pluginVersion, "0.3.0");
     assert.equal(report.scope, "isolated_startup");
     assert.equal(report.invocation, "direct_process");
-    assert.equal(report.check, "packaged_manifest_stdio");
+    assert.equal(report.check, "prepared_runtime_stdio");
     assert.equal(report.realStorageWriteCheck, "not_performed");
     assert.equal(report.directStartupOk, true);
     assert.equal(report.hostRegistrationChecked, false);
@@ -59,6 +61,37 @@ test("diagnostic connects through the packaged manifest and lists the server too
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test("cache diagnostics use prepared runtime dependencies outside an empty cache", async (t) => {
+  const fixture = await createRuntimeFixture(t);
+  const { stdout, stderr } = await execFile(process.execPath, [join(fixture.sourceRoot, "scripts", "diagnose-mcp.mjs")], {
+    env: fixture.env, timeout: 30_000, maxBuffer: 64 * 1024,
+  });
+  const report = JSON.parse(stdout);
+  assert.equal(stderr, "");
+  assert.equal(report.result, "success");
+  assert.equal(report.check, "prepared_runtime_stdio");
+  assert.equal(report.toolCount, 15);
+  assert.equal(report.isInstalledCache, false);
+  assert.deepEqual(report.dependencyIssues, []);
+  assert.equal(stdout.includes(fixture.directory), false);
+});
+
+test("cache diagnostics identify missing prepared runtimes without requiring SDK imports", async (t) => {
+  const fixture = await createRuntimeFixture(t, { prepare: false });
+  const failure = await execFile(process.execPath, [join(fixture.sourceRoot, "scripts", "diagnose-mcp.mjs")], {
+    env: fixture.env, timeout: 30_000, maxBuffer: 64 * 1024,
+  }).then(() => null, (error) => error);
+  assert.ok(failure);
+  assert.equal(failure.code, 1);
+  assert.equal(failure.stderr, "");
+  const report = JSON.parse(failure.stdout);
+  assert.equal(report.phase, "runtime_setup");
+  assert.equal(report.errorCategory, "runtime_not_prepared");
+  assert.equal(report.runtime.pluginVersion, "0.3.0");
+  assert.equal(report.dependencyIssues, null);
+  assert.equal(failure.stdout.includes(fixture.directory), false);
 });
 
 test("Windows default-path validation reports a missing LOCALAPPDATA without exposing details", () => {
@@ -169,7 +202,7 @@ test("diagnostic detects an SDK manifest with missing entry files without leakin
     let stdout;
     try {
       await execFile(process.execPath, [join(fixture, "scripts", "diagnose-mcp.mjs")], {
-        env: { ...process.env, ZAWAZAWA_REVIEW_STORE_DIR: join(fixture, "unused-store"), ZAWAZAWA_CONNECTOR_PROFILE_DIR: join(fixture, "unused-profile") },
+        env: { ...process.env, ZAWAZAWA_REVIEW_STORE_DIR: join(fixture, "unused-store"), ZAWAZAWA_CONNECTOR_PROFILE_DIR: join(fixture, "unused-profile"), ZAWAZAWA_DIAGNOSTIC_DIRECT_SERVER: "1" },
         timeout: 15_000,
       });
       assert.fail("Missing SDK files must fail the diagnostic");
