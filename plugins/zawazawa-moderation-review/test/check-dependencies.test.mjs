@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,23 @@ import test from "node:test";
 import { checkDependencies } from "../scripts/check-dependencies.mjs";
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+
+test("ancestor dependencies cannot hide an empty installed cache", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "zawazawa-parent-dependencies-"));
+  try {
+    const installedRoot = join(directory, "installed-plugin");
+    await mkdir(installedRoot);
+    await symlink(join(pluginRoot, "node_modules"), join(directory, "node_modules"), "junction");
+    const result = await checkDependencies(installedRoot);
+    assert.equal(result.ok, false);
+    assert.equal(result.category, "dependencies_missing");
+    assert.equal(result.issues.length, 5);
+    assert.ok(result.issues.every((issue) => issue.errorCode === "ENOENT" && issue.specifier.endsWith("/package.json")));
+    assert.equal(JSON.stringify(result).includes(directory), false);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
 
 test("runtime dependency check imports the installed plugin entrypoints", async () => {
   assert.deepEqual(await checkDependencies(pluginRoot), {

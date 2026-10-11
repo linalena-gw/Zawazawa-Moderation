@@ -32,9 +32,14 @@ const codeOf = (error) => /^[A-Z][A-Z0-9_]*$/.test(error?.code ?? "") ? error.co
 const record = (packageName, specifier, error) => {
   const errorCode = codeOf(error);
   issues.push({ packageName, specifier,
-    category: ["ERR_MODULE_NOT_FOUND", "MODULE_NOT_FOUND"].includes(errorCode) ? "dependency_missing" : "dependency_import_failed",
+    category: ["ERR_MODULE_NOT_FOUND", "MODULE_NOT_FOUND", "ENOENT"].includes(errorCode) ? "dependency_missing" : "dependency_import_failed",
     errorCode });
 };
+// Parent-directory packages can make imports pass while this installed cache has no dependencies.
+await Promise.all([...new Set(imports.map(([packageName]) => packageName))].map(async (packageName) => {
+  try { await access(resolve("node_modules", packageName, "package.json"), constants.R_OK); }
+  catch (error) { record(packageName, packageName + "/package.json", error); }
+}));
 await Promise.all(imports.map(async ([packageName, specifier]) => {
   try { await import(specifier); } catch (error) { record(packageName, specifier, error); }
 }));
