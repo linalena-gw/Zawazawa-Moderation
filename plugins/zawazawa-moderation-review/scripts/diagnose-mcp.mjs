@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
 import { homedir, platform as hostPlatform, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,58 @@ const MINIMUM_NODE_MAJOR = 24;
 const MCP_TIMEOUT_MS = 20_000;
 const MAX_STDERR_BYTES = 16 * 1024;
 const IS_INSTALLED_CACHE = /(?:^|[/\\])plugins[/\\]cache[/\\]/iu.test(PLUGIN_ROOT);
+const SDK_CLIENT_SPECIFIERS = [
+  "@modelcontextprotocol/sdk/client/index.js",
+  "@modelcontextprotocol/sdk/client/stdio.js",
+];
+const SAFE_IMPORT_ERROR_CODES = new Set([
+  "ERR_MODULE_NOT_FOUND", "MODULE_NOT_FOUND", "ERR_PACKAGE_PATH_NOT_EXPORTED",
+  "ERR_INVALID_PACKAGE_CONFIG", "ERR_UNKNOWN_FILE_EXTENSION", "EACCES", "EPERM",
+]);
+
+async function exists(path) {
+  try { await access(path); return true; } catch { return false; }
+}
+
+export function knownMissingPackage(error, packageNames) {
+  const target = /Cannot find (?:module|package) '([^']+)'/u.exec(String(error?.message ?? ""))?.[1]?.replaceAll("\\", "/");
+  if (!target) return null;
+  return packageNames.find((name) => target === name || target.includes(`/node_modules/${name}/`)) ?? null;
+}
+
+async function loadSdkClients() {
+  const packageManifestPresent = await exists(join(PLUGIN_ROOT, "node_modules", "@modelcontextprotocol", "sdk", "package.json"));
+  let packageNames = [];
+  try {
+    const lock = JSON.parse(await readFile(join(PLUGIN_ROOT, "package-lock.json"), "utf8"));
+    packageNames = Object.keys(lock.packages ?? {})
+      .filter((key) => key.includes("node_modules/"))
+      .map((key) => key.split("node_modules/").at(-1));
+  } catch { /* Missing lock metadata must not hide the original import error. */ }
+  const issues = [];
+  const results = await Promise.allSettled(SDK_CLIENT_SPECIFIERS.map(async (specifier) => {
+    let entrypointResolved = false;
+    let entrypointExists = false;
+    try {
+      const url = import.meta.resolve(specifier);
+      entrypointResolved = true;
+      entrypointExists = await exists(fileURLToPath(url));
+      return await import(specifier);
+    } catch (error) {
+      issues.push({
+        specifier,
+        errorCode: SAFE_IMPORT_ERROR_CODES.has(error?.code) ? error.code : "IMPORT_FAILED",
+        missingPackage: knownMissingPackage(error, packageNames),
+        packageManifestPresent,
+        entrypointResolved,
+        entrypointExists,
+      });
+      throw error;
+    }
+  }));
+  issues.sort((a, b) => a.specifier.localeCompare(b.specifier));
+  return { issues, results };
+}
 
 export const KNOWN_TOOL_NAMES = Object.freeze([
   "get_moderation_target_config",
@@ -100,6 +152,7 @@ export function createSafeReport({
   pluginVersion = null,
   elapsedMs = null,
   cleanupFailed = false,
+  dependencyIssues = null,
   env = process.env,
   platform = hostPlatform(),
   nodeVersion = process.version,
@@ -138,6 +191,7 @@ export function createSafeReport({
     },
     errorCategory,
     failureDetail,
+    dependencyIssues,
     cleanupCategory: cleanupFailed ? "cleanup_failed" : null,
   };
 }
@@ -177,6 +231,7 @@ async function runDiagnostic() {
   let phase = "runtime";
   let error = null;
   let failureDetail = null;
+  let dependencyIssues = null;
   let toolNames = null;
   let pluginVersion = null;
   let stderr = "";
@@ -219,10 +274,12 @@ async function runDiagnostic() {
     const temporaryProfile = join(temporaryRoot, "connector-profile");
 
     phase = "dependencies";
-    const [{ Client }, { StdioClientTransport }] = await Promise.all([
-      import("@modelcontextprotocol/sdk/client/index.js"),
-      import("@modelcontextprotocol/sdk/client/stdio.js"),
-    ]);
+    const sdk = await loadSdkClients();
+    dependencyIssues = sdk.issues;
+    const failedImport = sdk.results.find((result) => result.status === "rejected");
+    if (failedImport) throw failedImport.reason;
+    const { Client } = sdk.results[0].value;
+    const { StdioClientTransport } = sdk.results[1].value;
 
     transport = new StdioClientTransport({
       command: server.command,
@@ -315,6 +372,7 @@ async function runDiagnostic() {
     phase,
     errorCategory,
     failureDetail,
+    dependencyIssues,
     toolNames,
     pluginVersion,
     elapsedMs: Date.now() - startedAt,
@@ -323,7 +381,8 @@ async function runDiagnostic() {
 }
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : null;
-if (invokedPath === fileURLToPath(import.meta.url)) {
+const invokedRealPath = invokedPath ? await realpath(invokedPath).catch(() => null) : null;
+if (invokedRealPath === fileURLToPath(import.meta.url)) {
   const report = await runDiagnostic();
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   if (report.result !== "success") process.exitCode = 1;

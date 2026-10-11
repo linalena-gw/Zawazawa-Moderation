@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
@@ -10,6 +10,7 @@ import {
   classifyDiagnosticFailure,
   createSafeReport,
   KNOWN_TOOL_NAMES,
+  knownMissingPackage,
   parseMcpManifest,
   validateDefaultStoragePaths,
 } from "../scripts/diagnose-mcp.mjs";
@@ -52,6 +53,7 @@ test("diagnostic connects through the packaged manifest and lists the server too
     assert.equal(report.knownToolsPresent.render_moderation_review, true);
     assert.equal(report.knownToolsPresent.get_moderation_review_snapshot, false);
     assert.equal(report.errorCategory, null);
+    assert.deepEqual(report.dependencyIssues, []);
     assert.equal(JSON.stringify(report).includes(directory), false);
     assert.equal(JSON.stringify(report).includes("caller-store"), false);
   } finally {
@@ -127,6 +129,7 @@ test("safe report includes only runtime, phases, known tool presence, and enviro
   assert.deepEqual(Object.keys(report).sort(), [
     "check",
     "cleanupCategory",
+    "dependencyIssues",
     "directStartupOk",
     "elapsedMs",
     "environment",
@@ -143,4 +146,59 @@ test("safe report includes only runtime, phases, known tool presence, and enviro
     "scope",
     "toolCount",
   ]);
+});
+
+test("diagnostic detects an SDK manifest with missing entry files without leaking paths", async () => {
+  const pluginRoot = resolve(dirname(diagnosticScript), "..");
+  const fixture = await mkdtemp(join(tmpdir(), "zawazawa-sdk-fixture-"));
+  try {
+    await mkdir(join(fixture, "scripts"));
+    await mkdir(join(fixture, "server"));
+    await Promise.all([
+      copyFile(diagnosticScript, join(fixture, "scripts", "diagnose-mcp.mjs")),
+      copyFile(join(pluginRoot, "server", "platform-paths.mjs"), join(fixture, "server", "platform-paths.mjs")),
+      copyFile(join(pluginRoot, ".mcp.json"), join(fixture, ".mcp.json")),
+      copyFile(join(pluginRoot, "package.json"), join(fixture, "package.json")),
+      copyFile(join(pluginRoot, "package-lock.json"), join(fixture, "package-lock.json")),
+    ]);
+    {
+      const sdkPath = join(fixture, "node_modules", "@modelcontextprotocol", "sdk");
+      await mkdir(sdkPath, { recursive: true });
+      await copyFile(join(pluginRoot, "node_modules", "@modelcontextprotocol", "sdk", "package.json"), join(sdkPath, "package.json"));
+    }
+    let stdout;
+    try {
+      await execFile(process.execPath, [join(fixture, "scripts", "diagnose-mcp.mjs")], {
+        env: { ...process.env, ZAWAZAWA_REVIEW_STORE_DIR: join(fixture, "unused-store"), ZAWAZAWA_CONNECTOR_PROFILE_DIR: join(fixture, "unused-profile") },
+        timeout: 15_000,
+      });
+      assert.fail("Missing SDK files must fail the diagnostic");
+    } catch (error) {
+      assert.equal(error.code, 1);
+      assert.equal(error.stderr, "");
+      stdout = error.stdout;
+    }
+    const report = JSON.parse(stdout);
+    assert.equal(report.phase, "dependencies");
+    assert.equal(report.errorCategory, "dependencies_missing");
+    assert.equal(report.dependencyIssues.length, 2);
+    for (const issue of report.dependencyIssues) {
+      assert.equal(issue.errorCode, "ERR_MODULE_NOT_FOUND");
+      assert.equal(issue.missingPackage, "@modelcontextprotocol/sdk");
+      assert.equal(issue.packageManifestPresent, true);
+      assert.equal(issue.entrypointResolved, true);
+      assert.equal(issue.entrypointExists, false);
+    }
+    assert.equal(stdout.includes(fixture), false);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test("missing-package details only return names present in public lock metadata", () => {
+  const names = ["@modelcontextprotocol/sdk", "zod"];
+  assert.equal(knownMissingPackage(new Error("Cannot find package 'zod' imported from a private location"), names), "zod");
+  assert.equal(knownMissingPackage(new Error("Cannot find module 'C:\\private-fixture\\node_modules\\zod\\missing.js'"), names), "zod");
+  assert.equal(knownMissingPackage(new Error("Cannot find package 'private-fixture'"), names), null);
+  assert.equal(knownMissingPackage(new Error("Cannot find module 'C:\\private-fixture\\missing.js'"), names), null);
 });
