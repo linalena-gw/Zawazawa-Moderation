@@ -27,3 +27,53 @@ jobs:
           cache-dependency-path: plugins/zawazawa-moderation-review/package-lock.json
       - run: npm ci
       - run: npm run verify
+
+  native-bootstrap:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: plugins/zawazawa-moderation-review
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare without PATH Node on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          export ZAWAZAWA_HOME_DIR="$RUNNER_TEMP/zawazawa-bootstrap"
+          export CODEX_HOME="$RUNNER_TEMP/zawazawa-codex"
+          export ZAWAZAWA_REVIEW_STORE_DIR="$RUNNER_TEMP/zawazawa-reviews"
+          export ZAWAZAWA_CONNECTOR_PROFILE_DIR="$RUNNER_TEMP/zawazawa-profile"
+          PATH=/nonexistent /bin/sh scripts/bootstrap.sh --prepare
+          PATH=/nonexistent /bin/sh scripts/bootstrap.sh --run-script register
+          PATH=/nonexistent /bin/sh scripts/bootstrap.sh --run-script diagnose > "$RUNNER_TEMP/zawazawa-diagnostic.json"
+          dedicated_node=$(PATH=/nonexistent /bin/sh scripts/bootstrap.sh --print-node)
+          "$dedicated_node" --input-type=module -e 'import { readFileSync } from "node:fs"; const r=JSON.parse(readFileSync(process.argv[1])); if(r.result!=="success" || r.toolCount!==15) process.exit(1);' "$RUNNER_TEMP/zawazawa-diagnostic.json"
+          PATH=/nonexistent /bin/sh scripts/bootstrap.sh --prepare
+          PATH=/nonexistent /bin/sh scripts/bootstrap.sh --run-script unregister
+      - name: Prepare without PATH Node on Windows PowerShell
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:ZAWAZAWA_HOME_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-bootstrap'
+          $env:CODEX_HOME = Join-Path $env:RUNNER_TEMP 'zawazawa-codex'
+          $env:ZAWAZAWA_REVIEW_STORE_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-reviews'
+          $env:ZAWAZAWA_CONNECTOR_PROFILE_DIR = Join-Path $env:RUNNER_TEMP 'zawazawa-profile'
+          $nativePowerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+          $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot"
+          if (Get-Command node -ErrorAction SilentlyContinue) { throw 'PATH Node must be unavailable' }
+          & $nativePowerShell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -Prepare
+          if ($LASTEXITCODE -ne 0) { throw 'Preparation failed' }
+          & $nativePowerShell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -RunScript register
+          if ($LASTEXITCODE -ne 0) { throw 'Registration failed' }
+          $diagnostic = & $nativePowerShell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -RunScript diagnose
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostics failed' }
+          $report = ($diagnostic -join "`n") | ConvertFrom-Json
+          if ($report.result -ne 'success' -or $report.toolCount -ne 15) { throw 'Tools unavailable' }
+          & $nativePowerShell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -Prepare
+          if ($LASTEXITCODE -ne 0) { throw 'Repeated preparation failed' }
+          & $nativePowerShell -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File scripts/bootstrap.ps1 -RunScript unregister
+          if ($LASTEXITCODE -ne 0) { throw 'Cleanup failed' }
