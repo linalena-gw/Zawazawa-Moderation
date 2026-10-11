@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { isMainModule } from "../server/script-entry.mjs";
 
 import { execFile as execFileCallback } from "node:child_process";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
 const execFile = promisify(execFileCallback);
@@ -84,7 +85,7 @@ export async function checkDependencies(pluginRoot, { env = process.env } = {}) 
   }
 }
 
-if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) {
+if (await isMainModule(import.meta.url)) {
   const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const result = await checkDependencies(pluginRoot);
   if (result.ok) {

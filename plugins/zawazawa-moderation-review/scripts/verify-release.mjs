@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { isMainModule } from "../server/script-entry.mjs";
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(pluginRoot, "../..");
@@ -83,7 +84,7 @@ export function verifyReleaseMetadata() {
   return { pluginName, version, marketplace: "zawazawa-moderation" };
 }
 
-const invokedAsScript = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+const invokedAsScript = await isMainModule(import.meta.url);
 if (invokedAsScript) {
   const result = verifyReleaseMetadata();
   process.stdout.write(

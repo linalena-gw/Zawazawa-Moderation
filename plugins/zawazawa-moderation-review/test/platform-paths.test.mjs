@@ -47,7 +47,7 @@ test("plugin home and shared browser cache use one dedicated base", () => {
   );
   assert.equal(
     defaultBrowsersDirectory({ platform: "darwin", home, env: { ZAWAZAWA_HOME_DIR: "/custom/zawazawa" } }),
-    "/custom/zawazawa/browsers",
+    join("/custom/zawazawa", "browsers"),
   );
 });
 

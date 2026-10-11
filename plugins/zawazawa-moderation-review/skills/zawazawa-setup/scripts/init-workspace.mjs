@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { isMainModule } from "../../../server/script-entry.mjs";
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { isAbsolute, join, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const GROUP_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/u;
 const CONTROL_CHARACTER = /[\u0000-\u001f\u007f]/u;
@@ -171,7 +172,7 @@ export function initializeWorkspace(argv) {
   };
 }
 
-const invokedAsScript = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+const invokedAsScript = await isMainModule(import.meta.url);
 if (invokedAsScript) {
   try {
     process.stdout.write(`${JSON.stringify(initializeWorkspace(process.argv.slice(2)), null, 2)}\n`);

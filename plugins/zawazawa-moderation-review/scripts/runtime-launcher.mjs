@@ -1,11 +1,12 @@
 #!/usr/bin/env node
+import { isMainModule } from "../server/script-entry.mjs";
 // This cache-resident bootstrap intentionally uses only Node built-ins.
 import { spawn } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { access, constants, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { defaultBrowsersDirectory, defaultRuntimeDirectory } from "../server/platform-paths.mjs";
 import { checkDependencies } from "./check-dependencies.mjs";
 
@@ -433,7 +434,7 @@ async function main(args) {
   } else if (!prepare) await launchRuntime(target);
 }
 
-if (process.argv[1] && pathToFileURL(await realpath(resolve(process.argv[1]))).href === import.meta.url) {
+if (await isMainModule(import.meta.url)) {
   main(process.argv.slice(2)).catch((error) => {
     // No dependency/npm output ever goes to MCP stdout.
     process.stderr.write(`ZAWAZAWA runtime: ${error.message}\n`);

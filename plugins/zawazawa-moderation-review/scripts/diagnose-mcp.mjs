@@ -1,4 +1,5 @@
-import { access, mkdtemp, readFile, realpath, rm } from "node:fs/promises";
+import { isMainModule } from "../server/script-entry.mjs";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { homedir, platform as hostPlatform, tmpdir } from "node:os";
@@ -390,9 +391,7 @@ async function runDiagnostic() {
   });
 }
 
-const invokedPath = process.argv[1] ? resolve(process.argv[1]) : null;
-const invokedRealPath = invokedPath ? await realpath(invokedPath).catch(() => null) : null;
-if (invokedRealPath === fileURLToPath(import.meta.url)) {
+if (await isMainModule(import.meta.url)) {
   let report;
   const startedAt = Date.now();
   let metadata;

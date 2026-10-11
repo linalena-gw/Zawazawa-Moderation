@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { isMainModule } from "../server/script-entry.mjs";
 import { createHash, randomUUID } from "node:crypto";
 import { lstat, mkdir, open, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
@@ -112,8 +113,7 @@ export async function registerMcp({ configPath, ...options } = {}) {
   }
 }
 
-const invoked = process.argv[1] ? await realpath(resolve(process.argv[1])).catch(() => null) : null;
-if (invoked === fileURLToPath(import.meta.url)) {
+if (await isMainModule(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
     if (args.length && (args.length !== 1 || args[0] !== "--remove")) throw failure("REGISTRATION_ARGUMENT_INVALID");

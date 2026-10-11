@@ -135,8 +135,9 @@ test("runtime CLI dispatches only approved utilities with dedicated child enviro
   assert.deepEqual(JSON.parse(registered.stdout), { status: "registered" });
   const codexConfig = join(fixture.directory, "codex", "config.toml");
   const registration = await readFile(codexConfig, "utf8");
-  assert.ok(registration.includes(join(fixture.target.root, "server/server.mjs")));
-  assert.ok(registration.includes(fixture.browsersDirectory));
+  const registeredServer = parseToml(registration).mcp_servers.zawazawa_moderation_review;
+  assert.deepEqual(registeredServer.args, [join(fixture.target.root, "server/server.mjs")]);
+  assert.equal(registeredServer.env.PLAYWRIGHT_BROWSERS_PATH, fixture.browsersDirectory);
   const repeatedRegistration = await run(process.execPath, [launcher(fixture), "--run-script", "register"], { env: fixture.env });
   assert.deepEqual(JSON.parse(repeatedRegistration.stdout), { status: "unchanged" });
   await rm(fixture.browsersDirectory, { recursive: true, force: true });

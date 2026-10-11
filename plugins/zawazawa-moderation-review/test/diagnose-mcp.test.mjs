@@ -190,6 +190,7 @@ test("diagnostic detects an SDK manifest with missing entry files without leakin
     await Promise.all([
       copyFile(diagnosticScript, join(fixture, "scripts", "diagnose-mcp.mjs")),
       copyFile(join(pluginRoot, "server", "platform-paths.mjs"), join(fixture, "server", "platform-paths.mjs")),
+      copyFile(join(pluginRoot, "server", "script-entry.mjs"), join(fixture, "server", "script-entry.mjs")),
       copyFile(join(pluginRoot, "mcp.runtime.json"), join(fixture, "mcp.runtime.json")),
       copyFile(join(pluginRoot, "package.json"), join(fixture, "package.json")),
       copyFile(join(pluginRoot, "package-lock.json"), join(fixture, "package-lock.json")),
