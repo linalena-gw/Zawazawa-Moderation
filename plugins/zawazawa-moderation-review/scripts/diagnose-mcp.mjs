@@ -10,7 +10,7 @@ import {
 } from "../server/platform-paths.mjs";
 
 const PLUGIN_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const MANIFEST_PATH = join(PLUGIN_ROOT, ".mcp.json");
+const MANIFEST_PATH = join(PLUGIN_ROOT, "mcp.runtime.json");
 const MINIMUM_NODE_MAJOR = 24;
 const MCP_TIMEOUT_MS = 20_000;
 const MAX_STDERR_BYTES = 16 * 1024;

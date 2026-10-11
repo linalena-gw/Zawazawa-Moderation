@@ -17,7 +17,7 @@ test("ancestor dependencies cannot hide an empty installed cache", async () => {
     const result = await checkDependencies(installedRoot);
     assert.equal(result.ok, false);
     assert.equal(result.category, "dependencies_missing");
-    assert.equal(result.issues.length, 5);
+    assert.equal(result.issues.length, 6);
     assert.ok(result.issues.every((issue) => issue.errorCode === "ENOENT" && issue.specifier.endsWith("/package.json")));
     assert.equal(JSON.stringify(result).includes(directory), false);
   } finally {

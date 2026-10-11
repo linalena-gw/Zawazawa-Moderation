@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { join, win32 } from "node:path";
 import test from "node:test";
 import {
+  defaultBrowsersDirectory,
   defaultConnectorProfileDirectory,
+  defaultPluginHomeDirectory,
   defaultReviewStoreDirectory,
   defaultRuntimeDirectory,
 } from "../server/platform-paths.mjs";
@@ -31,6 +33,41 @@ test("runtime defaults stay outside the plugin cache on supported platforms", ()
     join("/Users/example", "Library", "Application Support", "ZAWAZAWA Moderation Review", "runtimes"));
   assert.equal(defaultRuntimeDirectory({ platform: "win32", env: { LOCALAPPDATA: "C:\\Local" } }),
     win32.join("C:\\Local", "ZAWAZAWA Moderation Review", "runtimes"));
+});
+
+test("plugin home and shared browser cache use one dedicated base", () => {
+  const home = "/Users/example";
+  const appSupport = join(home, "Library", "Application Support", "ZAWAZAWA Moderation Review");
+  assert.equal(defaultPluginHomeDirectory({ platform: "darwin", home, env: {} }), appSupport);
+  assert.equal(defaultBrowsersDirectory({ platform: "darwin", home, env: {} }), join(appSupport, "browsers"));
+  assert.equal(defaultRuntimeDirectory({ platform: "darwin", home, env: {} }), join(appSupport, "runtimes"));
+  assert.equal(
+    defaultPluginHomeDirectory({ platform: "darwin", home, env: { ZAWAZAWA_HOME_DIR: "/custom/zawazawa" } }),
+    "/custom/zawazawa",
+  );
+  assert.equal(
+    defaultBrowsersDirectory({ platform: "darwin", home, env: { ZAWAZAWA_HOME_DIR: "/custom/zawazawa" } }),
+    "/custom/zawazawa/browsers",
+  );
+});
+
+test("Windows plugin home and browser cache require a local drive", () => {
+  const env = { LOCALAPPDATA: "D:\\Users\\example\\AppData\\Local" };
+  const base = win32.join(env.LOCALAPPDATA, "ZAWAZAWA Moderation Review");
+  assert.equal(defaultPluginHomeDirectory({ platform: "win32", env }), base);
+  assert.equal(defaultBrowsersDirectory({ platform: "win32", env }), win32.join(base, "browsers"));
+  assert.equal(
+    defaultBrowsersDirectory({ platform: "win32", env: { PLAYWRIGHT_BROWSERS_PATH: "E:\\Playwright\\browsers" } }),
+    "E:\\Playwright\\browsers",
+  );
+  assert.throws(
+    () => defaultPluginHomeDirectory({ platform: "win32", env: { ZAWAZAWA_HOME_DIR: "\\\\example\\share\\base" } }),
+    /ローカルドライブ/u,
+  );
+  assert.throws(
+    () => defaultBrowsersDirectory({ platform: "win32", env: { PLAYWRIGHT_BROWSERS_PATH: "\\\\example\\share\\browsers" } }),
+    /ローカルドライブ/u,
+  );
 });
 
 test("Windows runtime rejects UNC overrides while operational directories accept them", () => {

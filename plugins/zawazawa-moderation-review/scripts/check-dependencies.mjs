@@ -16,6 +16,7 @@ const imports = [
   ["zod", "zod/v3"],
   ["cheerio", "cheerio"],
   ["playwright-core", "playwright-core"],
+  ["smol-toml", "smol-toml"],
 ];
 const readable = [["@modelcontextprotocol/ext-apps", "@modelcontextprotocol/ext-apps/app-with-deps"]];
 
@@ -63,13 +64,13 @@ function runnerFailure(error) {
 }
 
 /** Check runtime entrypoints using this Node runtime and the supplied installed plugin root. */
-export async function checkDependencies(pluginRoot) {
+export async function checkDependencies(pluginRoot, { env = process.env } = {}) {
   if (typeof pluginRoot !== "string" || pluginRoot.length === 0) {
     return { ok: false, category: "plugin_root_invalid", issues: [] };
   }
   try {
     const { stdout } = await execFile(process.execPath, ["--input-type=module", "--eval", probeSource()], {
-      cwd: resolve(pluginRoot), encoding: "utf8", timeout: 15_000, maxBuffer: 64 * 1024, windowsHide: true,
+      cwd: resolve(pluginRoot), env, encoding: "utf8", timeout: 15_000, maxBuffer: 64 * 1024, windowsHide: true,
     });
     const line = stdout.split(/\r?\n/u).findLast((entry) => entry.startsWith(reportPrefix));
     if (!line) return runnerFailure(null);

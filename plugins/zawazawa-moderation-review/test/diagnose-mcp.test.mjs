@@ -42,7 +42,7 @@ test("isolated server diagnostics list tools after dependencies are available", 
     assert.equal(report.result, "success");
     assert.equal(report.phase, "tools");
     assert.equal(report.runtime.nodeSupported, true);
-    assert.equal(report.runtime.pluginVersion, "0.3.0");
+    assert.equal(report.runtime.pluginVersion, "0.4.0");
     assert.equal(report.scope, "isolated_startup");
     assert.equal(report.invocation, "direct_process");
     assert.equal(report.check, "prepared_runtime_stdio");
@@ -89,7 +89,7 @@ test("cache diagnostics identify missing prepared runtimes without requiring SDK
   const report = JSON.parse(failure.stdout);
   assert.equal(report.phase, "runtime_setup");
   assert.equal(report.errorCategory, "runtime_not_prepared");
-  assert.equal(report.runtime.pluginVersion, "0.3.0");
+  assert.equal(report.runtime.pluginVersion, "0.4.0");
   assert.equal(report.dependencyIssues, null);
   assert.equal(failure.stdout.includes(fixture.directory), false);
 });
@@ -190,7 +190,7 @@ test("diagnostic detects an SDK manifest with missing entry files without leakin
     await Promise.all([
       copyFile(diagnosticScript, join(fixture, "scripts", "diagnose-mcp.mjs")),
       copyFile(join(pluginRoot, "server", "platform-paths.mjs"), join(fixture, "server", "platform-paths.mjs")),
-      copyFile(join(pluginRoot, ".mcp.json"), join(fixture, ".mcp.json")),
+      copyFile(join(pluginRoot, "mcp.runtime.json"), join(fixture, "mcp.runtime.json")),
       copyFile(join(pluginRoot, "package.json"), join(fixture, "package.json")),
       copyFile(join(pluginRoot, "package-lock.json"), join(fixture, "package-lock.json")),
     ]);

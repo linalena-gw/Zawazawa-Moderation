@@ -25,26 +25,22 @@ export function verifyReleaseMetadata() {
   const packageJson = json(join(pluginRoot, "package.json"));
   const packageLock = json(join(pluginRoot, "package-lock.json"));
   const codexManifest = json(join(pluginRoot, ".codex-plugin", "plugin.json"));
-  const claudeManifest = json(join(pluginRoot, ".claude-plugin", "plugin.json"));
   const codexMarketplace = json(join(repositoryRoot, ".agents", "plugins", "marketplace.json"));
-  const claudeMarketplace = json(join(repositoryRoot, ".claude-plugin", "marketplace.json"));
-  const mcpManifest = json(join(pluginRoot, ".mcp.json"));
+  const mcpManifest = json(join(pluginRoot, "mcp.runtime.json"));
   const version = packageJson.version;
   const pluginName = packageJson.name;
   const repository = "https://github.com/linalena-gw/Zawazawa-Moderation";
 
-  assertEqual(version, "0.3.0", "公開版version");
+  assertEqual(version, "0.4.0", "公開版version");
   assertEqual(packageLock.version, version, "package-lock version");
   assertEqual(packageLock.packages?.[""]?.version, version, "package-lock root version");
   assertEqual(codexManifest.version, version, "Codex manifest version");
-  assertEqual(claudeManifest.version, version, "Claude manifest version");
   assertEqual(codexManifest.name, pluginName, "Codex plugin name");
-  assertEqual(claudeManifest.name, pluginName, "Claude plugin name");
-  assertEqual(mcpManifest.mcpServers?.[pluginName]?.args?.[0], "./scripts/runtime-launcher.mjs", "Codex persistent runtime launcher");
-  assertEqual(claudeManifest.mcpServers?.[pluginName]?.args?.[0], "${CLAUDE_PLUGIN_ROOT}/scripts/runtime-launcher.mjs", "Claude persistent runtime launcher");
+  assertEqual(codexManifest.mcpServers, undefined, "MCP登録はsetupが専用Nodeの絶対パスで行う");
+  if (existsSync(join(pluginRoot, ".mcp.json"))) throw new Error("Codexが自動検出する.mcp.jsonを配布へ含めないでください。");
+  assertEqual(mcpManifest.mcpServers?.[pluginName]?.args?.[0], "./scripts/runtime-launcher.mjs", "開発・診断用runtime launcher");
   assertEqual(packageJson.repository, repository, "package repository");
   assertEqual(codexManifest.repository, repository, "Codex repository");
-  assertEqual(claudeManifest.repository, repository, "Claude repository");
 
   assertContains(
     join(pluginRoot, "server", "server.mjs"),
@@ -59,13 +55,11 @@ export function verifyReleaseMetadata() {
 
   for (const [label, marketplace] of [
     ["Codex marketplace", codexMarketplace],
-    ["Claude marketplace", claudeMarketplace],
   ]) {
     assertEqual(marketplace.name, "zawazawa-moderation", `${label} name`);
     assertEqual(marketplace.plugins?.length, 1, `${label} plugin count`);
     assertEqual(marketplace.plugins[0].name, pluginName, `${label} plugin name`);
   }
-  assertEqual(claudeMarketplace.plugins[0].version, version, "Claude marketplace plugin version");
 
   for (const relativePath of [
     "zawazawa.config.json",

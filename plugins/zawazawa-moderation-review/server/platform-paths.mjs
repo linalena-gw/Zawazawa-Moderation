@@ -21,6 +21,13 @@ function windowsLocalAppData(env) {
   return directory;
 }
 
+function windowsLocalDirectory(directory, name) {
+  if (!/^[a-z]:[\\/]/iu.test(directory)) {
+    throw new Error(`${name}はWindowsのローカルドライブの絶対パスで指定してください。`);
+  }
+  return directory;
+}
+
 function unsupportedPlatform(platform) {
   throw new Error(
     `このOS（${platform}）の既定保存先は正式対応外です。対象のZAWAZAWA_*_DIRを絶対パスで指定してください。`,
@@ -36,6 +43,40 @@ function explicitDirectory(env, name, platform) {
   const absolute = platform === "win32" ? isFullyQualifiedWindowsPath(value) : isAbsolute(value);
   if (!absolute) throw new Error(`${name}は絶対パスで指定してください。`);
   return value;
+}
+
+export function defaultPluginHomeDirectory({
+  env = process.env,
+  platform = hostPlatform(),
+  home = homedir(),
+} = {}) {
+  const explicit = explicitDirectory(env, "ZAWAZAWA_HOME_DIR", platform);
+  if (explicit) {
+    if (platform === "win32") windowsLocalDirectory(explicit, "ZAWAZAWA_HOME_DIR");
+    return explicit;
+  }
+  if (platform === "darwin") {
+    return join(home, "Library", "Application Support", "ZAWAZAWA Moderation Review");
+  }
+  if (platform === "win32") {
+    return windowsLocalDirectory(
+      win32.join(windowsLocalAppData(env), "ZAWAZAWA Moderation Review"),
+      "ZAWAZAWA_HOME_DIR",
+    );
+  }
+  return unsupportedPlatform(platform);
+}
+
+export function defaultBrowsersDirectory({
+  env = process.env,
+  platform = hostPlatform(),
+  home = homedir(),
+} = {}) {
+  const explicit = explicitDirectory(env, "PLAYWRIGHT_BROWSERS_PATH", platform);
+  const joinForPlatform = platform === "win32" ? win32.join : join;
+  const directory = explicit ?? joinForPlatform(defaultPluginHomeDirectory({ env, platform, home }), "browsers");
+  if (platform === "win32") windowsLocalDirectory(directory, "PLAYWRIGHT_BROWSERS_PATH");
+  return directory;
 }
 
 export function defaultReviewStoreDirectory({
@@ -88,15 +129,10 @@ export function defaultRuntimeDirectory({
   home = homedir(),
 } = {}) {
   const explicit = explicitDirectory(env, "ZAWAZAWA_RUNTIME_DIR", platform);
-  const directory = explicit ?? (platform === "darwin"
-    ? join(home, "Library", "Application Support", "ZAWAZAWA Moderation Review", "runtimes")
-    : platform === "win32"
-      ? win32.join(windowsLocalAppData(env), "ZAWAZAWA Moderation Review", "runtimes")
-      : unsupportedPlatform(platform));
+  const joinForPlatform = platform === "win32" ? win32.join : join;
+  const directory = explicit ?? joinForPlatform(defaultPluginHomeDirectory({ env, platform, home }), "runtimes");
   // Runtime code and native dependencies require a local drive on Windows.
   // Operational document/profile overrides retain their existing UNC support.
-  if (platform === "win32" && !/^[a-z]:[\\/]/iu.test(directory)) {
-    throw new Error("ZAWAZAWA_RUNTIME_DIRはWindowsのローカルドライブの絶対パスで指定してください。");
-  }
+  if (platform === "win32") windowsLocalDirectory(directory, "ZAWAZAWA_RUNTIME_DIR");
   return directory;
 }

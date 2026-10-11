@@ -6,13 +6,115 @@ import { access, constants, lstat, mkdir, open, readFile, readdir, realpath, ren
 import { setTimeout as delay } from "node:timers/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { defaultRuntimeDirectory } from "../server/platform-paths.mjs";
+import { defaultBrowsersDirectory, defaultRuntimeDirectory } from "../server/platform-paths.mjs";
 import { checkDependencies } from "./check-dependencies.mjs";
 
 export const READY_MARKER = ".runtime-ready.json";
-const ROOT_FILES = ["package.json", "package-lock.json", ".mcp.json"];
-const SCRIPT_FILES = ["runtime-launcher.mjs", "check-dependencies.mjs", "diagnose-mcp.mjs", "zawazawa-auth.mjs"];
+const ROOT_FILES = ["package.json", "package-lock.json", "mcp.runtime.json"];
+const SCRIPT_FILES = [
+  "runtime-launcher.mjs",
+  "check-dependencies.mjs",
+  "diagnose-mcp.mjs",
+  "register-mcp.mjs",
+  "zawazawa-auth.mjs",
+  "bootstrap.sh",
+  "bootstrap.ps1",
+  "node-release.json",
+];
 const SOURCE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const BROWSER_PROBE = `
+import { access, constants } from "node:fs/promises";
+import { chromium } from "playwright-core";
+const executablePath = chromium.executablePath();
+try { await access(executablePath, constants.X_OK); }
+catch { process.stdout.write(JSON.stringify({ found: false, executablePath }) + "\\n"); process.exit(0); }
+let missingLaunchExecutable = false;
+if (process.argv.includes("--launch")) {
+  try {
+    const browser = await chromium.launch({ headless: true });
+    await browser.close();
+  } catch (error) {
+    const detail = String(error?.message ?? "");
+    if (error?.code === "ENOENT" || /Executable doesn't exist at|spawn .* ENOENT/iu.test(detail)) {
+      missingLaunchExecutable = true;
+    } else throw error;
+  }
+}
+process.stdout.write(JSON.stringify({ found: true, executablePath, missingLaunchExecutable }) + "\\n");
+`;
+
+function runtimeChildEnvironment(browserDirectory, env = process.env) {
+  return {
+    ...env,
+    PLAYWRIGHT_BROWSERS_PATH: browserDirectory,
+    PLAYWRIGHT_SKIP_BROWSER_GC: "1",
+  };
+}
+
+function runCaptured(command, args, options) {
+  return new Promise((resolveProcess, reject) => {
+    const child = spawn(command, args, { ...options, stdio: ["ignore", "pipe", "pipe"], windowsHide: true });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.setEncoding("utf8").on("data", (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding("utf8").on("data", (chunk) => { stderr += chunk; });
+    child.once("error", reject);
+    child.once("close", (code, signal) => resolveProcess({ code, signal, stdout, stderr }));
+  });
+}
+
+async function probeBrowser(runtimeRoot, browserDirectory, { launch = false } = {}) {
+  const result = await runCaptured(
+    process.execPath,
+    ["--input-type=module", "--eval", BROWSER_PROBE, ...(launch ? ["--", "--launch"] : [])],
+    { cwd: runtimeRoot, env: runtimeChildEnvironment(browserDirectory) },
+  );
+  if (result.code !== 0 || result.signal) {
+    throw new Error(launch
+      ? "Headless Chromium could not be launched and closed."
+      : "The Playwright Chromium executable could not be checked.");
+  }
+  try {
+    const probe = JSON.parse(result.stdout.trim());
+    if (typeof probe.found !== "boolean" || typeof probe.executablePath !== "string") throw new Error();
+    return probe;
+  } catch {
+    throw new Error("The Playwright Chromium executable could not be checked.");
+  }
+}
+
+async function installSharedChromium(runtimeRoot, browserDirectory, env = process.env) {
+  const before = await probeBrowser(runtimeRoot, browserDirectory);
+  const install = async () => {
+    const cli = join(runtimeRoot, "node_modules", "playwright-core", "cli.js");
+    if (!(await lstat(cli)).isFile()) throw new Error("The prepared runtime is missing the Playwright CLI.");
+    await new Promise((resolveInstall, reject) => {
+      const child = spawn(process.execPath, [cli, "install", "chromium"], {
+        cwd: runtimeRoot,
+        env: runtimeChildEnvironment(browserDirectory, env),
+        stdio: ["ignore", process.stderr, process.stderr],
+        windowsHide: true,
+      });
+      child.once("error", reject);
+      child.once("exit", (code, signal) => code === 0
+        ? resolveInstall()
+        : reject(new Error(`Shared Chromium installation failed (${signal ?? code}).`)));
+    });
+  };
+  if (!before.found) await install();
+  const after = await probeBrowser(runtimeRoot, browserDirectory);
+  if (!after.found) throw new Error("Shared Chromium installation did not produce its expected executable.");
+  let launchResult = await probeBrowser(runtimeRoot, browserDirectory, { launch: true });
+  if (launchResult.missingLaunchExecutable) {
+    // Playwright keeps the headless shell separately from the full Chromium executable.
+    // Repair a partial shared cache once when launch identifies that missing binary.
+    await install();
+    const repaired = await probeBrowser(runtimeRoot, browserDirectory);
+    if (!repaired.found) throw new Error("Shared Chromium installation did not produce its expected executable.");
+    launchResult = await probeBrowser(runtimeRoot, browserDirectory, { launch: true });
+    if (launchResult.missingLaunchExecutable) throw new Error("Shared Chromium installation did not produce its headless executable.");
+  }
+}
 
 async function snapshot(sourceRoot) {
   const files = [...ROOT_FILES, ...SCRIPT_FILES.map((name) => `scripts/${name}`)];
@@ -52,33 +154,56 @@ async function canonicalDirectory(directory) {
   }
 }
 
-export async function runtimeTarget({ sourceRoot = SOURCE_ROOT, runtimeDirectory = defaultRuntimeDirectory() } = {}) {
+export async function runtimeTarget({
+  sourceRoot = SOURCE_ROOT,
+  runtimeDirectory = defaultRuntimeDirectory(),
+  browsersDirectory = defaultBrowsersDirectory(),
+} = {}) {
   if (!isAbsolute(runtimeDirectory)) throw new Error("Runtime directory must be absolute and outside the plugin/cache tree.");
+  if (!isAbsolute(browsersDirectory)) throw new Error("Browser directory must be an absolute path.");
   const base = await canonicalDirectory(runtimeDirectory);
+  const browserBase = await canonicalDirectory(browsersDirectory);
   const canonicalSource = await canonicalDirectory(sourceRoot);
   const insideSource = relative(canonicalSource, base);
-  if (insideSource === "" || (!insideSource.startsWith("..") && !isAbsolute(insideSource)) || /(?:^|[/\\])plugins[/\\]cache(?:[/\\]|$)/iu.test(base) || (process.platform === "win32" && !/^[a-z]:[\\/]/iu.test(base))) {
+  const insideBrowserSource = relative(canonicalSource, browserBase);
+  const isInsideSource = (relativePath) => relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath));
+  const isPluginCache = (directory) => /(?:^|[/\\])plugins[/\\]cache(?:[/\\]|$)/iu.test(directory);
+  if (isInsideSource(insideSource) || isInsideSource(insideBrowserSource)
+    || isPluginCache(base) || isPluginCache(browserBase)
+    || (process.platform === "win32" && (!/^[a-z]:[\\/]/iu.test(base) || !/^[a-z]:[\\/]/iu.test(browserBase)))) {
     throw new Error("Runtime directory must be absolute and outside the plugin/cache tree.");
   }
   const source = await snapshot(sourceRoot);
-  return { ...source, root: join(base, source.identity), base };
+  return { ...source, root: join(base, source.identity), base, browsersDirectory: browserBase };
 }
 
-export async function verifyRuntime(target) {
+async function verifyRuntimeFiles(target) {
   try {
     const marker = JSON.parse(await readFile(join(target.root, READY_MARKER), "utf8"));
     if (marker.identity !== target.identity || marker.schemaVersion !== 1) return false;
     if ((await snapshot(target.root)).identity !== target.identity) return false;
     await access(join(target.root, "server/server.mjs"), constants.R_OK);
-    return (await checkDependencies(target.root)).ok;
+    return (await checkDependencies(target.root, {
+      env: runtimeChildEnvironment(target.browsersDirectory),
+    })).ok;
   } catch { return false; }
 }
 
-async function installDependencies(root, npmCli) {
+export async function verifyRuntime(target) {
+  try {
+    if (!(await verifyRuntimeFiles(target))) return false;
+    return (await probeBrowser(target.root, target.browsersDirectory)).found;
+  } catch { return false; }
+}
+
+async function installDependencies(root, npmCli, browserDirectory) {
   if (typeof npmCli !== "string" || !isAbsolute(npmCli) || !(await lstat(npmCli)).isFile()) throw new Error("--npm-cli must name an absolute npm CLI JavaScript file.");
   await new Promise((resolveInstall, reject) => {
     const child = spawn(process.execPath, [npmCli, "ci", "--ignore-scripts", "--prefix", root], {
-      cwd: root, stdio: ["ignore", process.stderr, process.stderr], windowsHide: true,
+      cwd: root,
+      env: runtimeChildEnvironment(browserDirectory),
+      stdio: ["ignore", process.stderr, process.stderr],
+      windowsHide: true,
     });
     child.once("error", reject);
     child.once("exit", (code, signal) => code === 0 ? resolveInstall() : reject(new Error(`Runtime dependency installation failed (${signal ?? code}).`)));
@@ -125,21 +250,38 @@ async function acquirePreparationLock(target, lockPath) {
 }
 
 /** Explicit preparation is the only operation that may invoke npm/network access. */
-export async function prepareRuntime(target, { npmCli } = {}) {
-  if (await verifyRuntime(target)) return target.root;
+export async function prepareRuntime(target, {
+  npmCli,
+  prepareBrowser = ({ runtimeRoot, browsersDirectory, env }) => installSharedChromium(runtimeRoot, browsersDirectory, env),
+} = {}) {
+  const prepareSharedBrowser = (runtimeRoot) => prepareBrowser({
+    runtimeRoot,
+    browsersDirectory: target.browsersDirectory,
+    env: runtimeChildEnvironment(target.browsersDirectory),
+  });
   await mkdir(target.base, { recursive: true });
   const lockPath = join(target.base, `.prepare-${target.identity}.lock`);
-  if (!(await acquirePreparationLock(target, lockPath))) return target.root;
+  if (!(await acquirePreparationLock(target, lockPath))) {
+    await prepareSharedBrowser(target.root);
+    return target.root;
+  }
   const staging = join(target.base, `.staging-${target.identity}-${randomUUID()}`);
   try {
-    if (await verifyRuntime(target)) return target.root;
+    // A published runtime can stay valid when the separately shared browser cache is
+    // removed, so repair the browser without repeating npm ci in that case.
+    if (await verifyRuntimeFiles(target)) {
+      await prepareSharedBrowser(target.root);
+      return target.root;
+    }
     await mkdir(staging);
     for (const [name, data] of target.entries) {
       await mkdir(dirname(join(staging, name)), { recursive: true });
       await writeFile(join(staging, name), data);
     }
-    await installDependencies(staging, npmCli);
-    if (!(await checkDependencies(staging)).ok) throw new Error("Prepared runtime dependency imports failed; runtime was not published.");
+    await installDependencies(staging, npmCli, target.browsersDirectory);
+    const childEnv = runtimeChildEnvironment(target.browsersDirectory);
+    if (!(await checkDependencies(staging, { env: childEnv })).ok) throw new Error("Prepared runtime dependency imports failed; runtime was not published.");
+    await prepareSharedBrowser(staging);
     await writeFile(join(staging, READY_MARKER), JSON.stringify({ schemaVersion: 1, identity: target.identity }));
     // Retire only this generated runtime, never operational config or browser profiles.
     const retired = join(target.base, `.retired-${target.identity}-${randomUUID()}`);
@@ -162,7 +304,10 @@ export async function prepareRuntime(target, { npmCli } = {}) {
 export async function launchRuntime(target) {
   if (!(await verifyRuntime(target))) throw new Error("Matching persistent runtime is not prepared or its dependencies are unavailable. Run setup with --prepare --npm-cli <absolute npm CLI path>.");
   const child = spawn(process.execPath, [join(target.root, "server/server.mjs")], {
-    cwd: target.root, stdio: "inherit", windowsHide: true,
+    cwd: target.root,
+    env: runtimeChildEnvironment(target.browsersDirectory),
+    stdio: "inherit",
+    windowsHide: true,
   });
   const signals = ["SIGINT", "SIGTERM"];
   const forward = new Map(signals.map((signal) => [signal, () => child.kill(signal)]));
@@ -179,20 +324,105 @@ export async function launchRuntime(target) {
   } finally { for (const [signal, handler] of forward) process.off(signal, handler); }
 }
 
+async function runAllowedScript(target, name, groupKey) {
+  if (name === "auth") {
+    if (!(await verifyRuntime(target))) {
+      throw new Error("Matching persistent runtime and shared Chromium are not prepared. Run setup with --prepare.");
+    }
+    const child = spawn(process.execPath, [join(target.root, "scripts/zawazawa-auth.mjs"), groupKey], {
+      cwd: target.root,
+      env: runtimeChildEnvironment(target.browsersDirectory),
+      stdio: "inherit",
+      windowsHide: true,
+    });
+    await forwardChildResult(child);
+    return;
+  }
+  if (name === "diagnose") {
+    const prepared = await verifyRuntimeFiles(target);
+    const scriptRoot = prepared ? target.root : SOURCE_ROOT;
+    const env = runtimeChildEnvironment(target.browsersDirectory);
+    if (prepared) env.ZAWAZAWA_DIAGNOSTIC_DIRECT_SERVER = "1";
+    const child = spawn(process.execPath, [join(scriptRoot, "scripts/diagnose-mcp.mjs")], {
+      cwd: scriptRoot,
+      env,
+      stdio: "inherit",
+      windowsHide: true,
+    });
+    await forwardChildResult(child);
+    return;
+  }
+  if (name === "register" || name === "unregister") {
+    const ready = name === "unregister"
+      ? await verifyRuntimeFiles(target)
+      : await verifyRuntime(target);
+    if (!ready) {
+      throw new Error(name === "unregister"
+        ? "Matching persistent runtime and dependencies are not prepared. Run setup with --prepare."
+        : "Matching persistent runtime and shared Chromium are not prepared. Run setup with --prepare.");
+    }
+    const helperArguments = name === "unregister" ? ["--remove"] : [];
+    const child = spawn(process.execPath, [join(target.root, "scripts/register-mcp.mjs"), ...helperArguments], {
+      cwd: target.root,
+      env: runtimeChildEnvironment(target.browsersDirectory),
+      stdio: "inherit",
+      windowsHide: true,
+    });
+    await forwardChildResult(child);
+    return;
+  }
+  throw new Error("Unsupported utility script.");
+}
+
+async function forwardChildResult(child) {
+  const signals = ["SIGINT", "SIGTERM"];
+  const forward = new Map(signals.map((signal) => [signal, () => child.kill(signal)]));
+  for (const [signal, handler] of forward) process.on(signal, handler);
+  try {
+    const result = await new Promise((resolveExit, reject) => {
+      child.once("error", reject);
+      child.once("exit", (code, signal) => resolveExit({ code, signal }));
+    });
+    if (result.signal) {
+      for (const [signal, handler] of forward) process.off(signal, handler);
+      process.kill(process.pid, result.signal);
+    } else process.exitCode = result.code ?? 1;
+  } finally {
+    for (const [signal, handler] of forward) process.off(signal, handler);
+  }
+}
+
 async function main(args) {
   if (Number(process.versions.node.split(".")[0]) < 24) throw new Error("Node.js 24 or newer is required.");
   let prepare = false;
   let printRoot = false;
   let npmCli;
+  let runScript;
+  let scriptArguments = [];
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     if (arg === "--prepare") prepare = true;
     else if (arg === "--print-root") printRoot = true;
     else if (arg === "--npm-cli" && args[index + 1]) npmCli = args[++index];
+    else if (arg === "--run-script" && args[index + 1]) {
+      if (runScript) throw new Error("Only one utility script may be selected.");
+      runScript = args[++index];
+      if (runScript === "auth" && args[index + 1]) scriptArguments = [args[++index]];
+      else if (!["diagnose", "auth", "register", "unregister"].includes(runScript)) throw new Error("Unsupported utility script.");
+    }
     else throw new Error("Unknown runtime launcher argument.");
   }
+  if (runScript && (prepare || printRoot || npmCli)) throw new Error("Utility scripts cannot be combined with runtime preparation or inspection.");
+  if (runScript === "auth" && (scriptArguments.length !== 1 || scriptArguments[0].startsWith("--"))) throw new Error("The auth utility requires one group key.");
+  if (runScript === "diagnose" && scriptArguments.length !== 0) throw new Error("The diagnose utility accepts no arguments.");
+  if (runScript === "register" && scriptArguments.length !== 0) throw new Error("The register utility accepts no arguments.");
+  if (runScript === "unregister" && scriptArguments.length !== 0) throw new Error("The unregister utility accepts no arguments.");
   if (prepare !== Boolean(npmCli)) throw new Error("--prepare requires --npm-cli <absolute npm CLI path>.");
   const target = await runtimeTarget();
+  if (runScript) {
+    await runAllowedScript(target, runScript, scriptArguments[0]);
+    return;
+  }
   if (prepare) {
     await prepareRuntime(target, { npmCli });
     process.stderr.write("Persistent runtime prepared.\n");

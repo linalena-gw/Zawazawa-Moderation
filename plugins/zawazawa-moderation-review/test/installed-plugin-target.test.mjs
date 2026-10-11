@@ -59,7 +59,7 @@ function installedPluginRoot(context) {
   return root;
 }
 
-/** `.mcp.json`の`cwd: "."`と同じく、プラグインルートを作業ディレクトリにして起動する。 */
+/** `mcp.runtime.json`の`cwd: "."`と同じく、プラグインルートを作業ディレクトリにして起動する。 */
 async function startInstalledServer(context, { cwd }) {
   const storeDirectory = temporaryDirectory(context, "zawazawa-installed-store-");
   const transport = new StdioClientTransport({
