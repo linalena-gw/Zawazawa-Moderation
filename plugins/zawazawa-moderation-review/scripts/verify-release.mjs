@@ -32,7 +32,7 @@ export function verifyReleaseMetadata() {
   const pluginName = packageJson.name;
   const repository = "https://github.com/linalena-gw/Zawazawa-Moderation";
 
-  assertEqual(version, "0.4.0", "公開版version");
+  assertEqual(version, "0.6.0", "公開版version");
   assertEqual(packageLock.version, version, "package-lock version");
   assertEqual(packageLock.packages?.[""]?.version, version, "package-lock root version");
   assertEqual(codexManifest.version, version, "Codex manifest version");

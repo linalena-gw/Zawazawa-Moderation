@@ -4,8 +4,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 import { EXTENSION_ID, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 
 function writeTargetConfig(directory, groupKey = "g") {
@@ -226,6 +226,23 @@ test("MCPサーバーが一覧表示ツールとUIリソースを公開する", 
   });
   assert.equal(copiedTitle.isError, true);
   assert.match(copiedTitle.content[0].text, /Unrecognized key/u);
+
+  // SDK/Zod更新後も、空の一覧・不正な識別子・未知の操作はサーバー側で拒む。
+  for (const invalidItems of [
+    [],
+    [{ ...noActionItem("96516"), comments: [{ topicNumber: "413", commentNumber: "invalid" }] }],
+    [{ ...noActionItem("96516"), recommendation: {
+      ...noActionItem("96516").recommendation,
+      operations: [{ operationId: "unknown", operationType: "unsupported", targetCommentNumbers: ["96516"], messageIds: [] }],
+    } }],
+  ]) {
+    const invalid = await client.callTool({
+      name: "render_moderation_review",
+      arguments: { targetContextId, batchTitle: "入力制約の確認", items: invalidItems },
+    });
+    assert.equal(invalid.isError, true);
+    assert.equal(invalid.structuredContent, undefined);
+  }
 
   const rendered = await client.callTool({
     name: "render_moderation_review",
@@ -1068,21 +1085,18 @@ test("MCP Appsを申告しないホストではapp-onlyツールを公開しな�
   const { batchId, snapshotToken } = rendered.structuredContent;
 
   // モデル可視のbatchIdとsnapshotTokenだけでは、保存済み本文も承認記録も作れない。
-  const snapshot = await client.callTool({
+  await assert.rejects(client.callTool({
     name: "get_moderation_review_snapshot",
     arguments: { batchId, snapshotToken },
-  });
-  assert.equal(snapshot.isError, true);
-  assert.equal(snapshot.structuredContent, undefined);
-  const submitted = await client.callTool({
+  }), { name: "ProtocolError", code: -32602 });
+  await assert.rejects(client.callTool({
     name: "submit_moderation_decisions",
     arguments: {
       batchId,
       snapshotToken,
       decisions: [{ itemId: "96517", choice: "approve", resolvedPlanToken: "0".repeat(64) }],
     },
-  });
-  assert.equal(submitted.isError, true);
+  }), { name: "ProtocolError", code: -32602 });
 
   // 承認が記録されていないことを、モデル可視の取得ツール側からも確認する。
   const review = await client.callTool({

@@ -44,7 +44,7 @@ Windows PowerShell:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "<bootstrapPath>" -Prepare
 ```
 
-bootstrapは公式Node.js v24.21.0のOS・CPU別アーカイブを固定SHA-256で検証して`node/`へ展開する。同梱npmを使い、コード版に一致するランタイムへ依存関係を準備する。続けて共用Chromiumを`browsers/`へ導入し、Playwrightから起動して検証する。準備後に再び`--print-root`と`--print-node`を実行し、パスを`runtimeRoot`と`nodePath`として使う。
+bootstrapは公式Node.js v26.11.1のOS・CPU別アーカイブを固定SHA-256で検証して`node/`へ展開する。同梱npmを使い、コード版に一致するランタイムへ依存関係を準備する。続けて共用Chromiumを`browsers/`へ導入し、Playwrightから起動して検証する。準備後に再び`--print-root`と`--print-node`を実行し、パスを`runtimeRoot`と`nodePath`として使う。
 
 同じNode.js、コード版、依存関係、共用Chromiumが準備済みなら再取得しない。コード更新で新しいフィンガープリントのランタイムが必要な場合は、その版だけを準備する。プラグインキャッシュが作り直されても、ユーザー領域の準備済みデータは再利用する。通常のMCPサーバー起動ではネットワークアクセスやインストールを行わない。
 

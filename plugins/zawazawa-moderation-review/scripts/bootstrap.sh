@@ -44,7 +44,7 @@ if [ "$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null || :)" = 1 ]; then arc
 case "$arch" in arm64) ;; x86_64) arch=x64 ;; *) fail 'Unsupported macOS architecture.' ;; esac
 version=$(/usr/bin/plutil -extract version raw -o - "$script_dir/node-release.json")
 checksum=$(/usr/bin/plutil -extract "darwin-$arch" raw -o - "$script_dir/node-release.json")
-case "$version" in 24.21.0) ;; *) fail 'Unsupported pinned Node version.' ;; esac
+case "$version" in 26.11.1) ;; *) fail 'Unsupported pinned Node version.' ;; esac
 [ "${#checksum}" = 64 ] || fail 'Invalid Node checksum.'
 name="node-v$version-darwin-$arch"
 target="$base/node/v$version-darwin-$arch"

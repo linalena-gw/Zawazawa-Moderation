@@ -2400,7 +2400,7 @@
           failLoad("一覧UIの読み込みに失敗しました。会話へ戻り、一覧の再表示を依頼してください。");
           return;
         }
-        app = new App({ name: "zawazawa-moderation-review", version: "0.4.0" });
+        app = new App({ name: "zawazawa-moderation-review", version: "0.6.0" });
         // 受信の登録はconnectより前に済ませる。接続直後の通知を取りこぼさないため。
         app.ontoolresult = (params) => loadBatchSummary(params?.structuredContent);
         app.onhostcontextchanged = (params) => applyHostContext(params?.hostContext ?? params);

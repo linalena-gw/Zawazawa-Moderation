@@ -56,7 +56,7 @@ switch ($architecture.ToLowerInvariant()) {
 }
 $release = Get-Content -LiteralPath (Join-Path $scriptRoot 'node-release.json') -Raw | ConvertFrom-Json
 $version = $release.version
-if ($version -ne '24.21.0') { throw 'Unsupported pinned Node version.' }
+if ($version -ne '26.11.1') { throw 'Unsupported pinned Node version.' }
 $checksum = $release."win-$arch"
 if ($checksum -notmatch '^[a-f0-9]{64}$') { throw 'Invalid Node checksum.' }
 $name = "node-v$version-win-$arch"

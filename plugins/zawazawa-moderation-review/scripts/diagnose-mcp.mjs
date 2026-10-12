@@ -19,8 +19,8 @@ const IS_INSTALLED_CACHE = /(?:^|[/\\])plugins[/\\]cache[/\\]/iu.test(PLUGIN_ROO
 const execFile = promisify(execFileCallback);
 const DIRECT_SERVER_ENV = "ZAWAZAWA_DIAGNOSTIC_DIRECT_SERVER";
 const SDK_CLIENT_SPECIFIERS = [
-  "@modelcontextprotocol/sdk/client/index.js",
-  "@modelcontextprotocol/sdk/client/stdio.js",
+  "@modelcontextprotocol/client",
+  "@modelcontextprotocol/client/stdio",
 ];
 const SAFE_IMPORT_ERROR_CODES = new Set([
   "ERR_MODULE_NOT_FOUND", "MODULE_NOT_FOUND", "ERR_PACKAGE_PATH_NOT_EXPORTED",
@@ -38,7 +38,7 @@ export function knownMissingPackage(error, packageNames) {
 }
 
 async function loadSdkClients() {
-  const packageManifestPresent = await exists(join(PLUGIN_ROOT, "node_modules", "@modelcontextprotocol", "sdk", "package.json"));
+  const packageManifestPresent = await exists(join(PLUGIN_ROOT, "node_modules", "@modelcontextprotocol", "client", "package.json"));
   let packageNames = [];
   try {
     const lock = JSON.parse(await readFile(join(PLUGIN_ROOT, "package-lock.json"), "utf8"));

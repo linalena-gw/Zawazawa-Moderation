@@ -9,12 +9,13 @@ import { promisify } from "node:util";
 const execFile = promisify(execFileCallback);
 const reportPrefix = "ZAWAZAWA_DEPENDENCY_CHECK:";
 const imports = [
-  ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/server/mcp.js"],
-  ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/server/stdio.js"],
-  ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/client/index.js"],
-  ["@modelcontextprotocol/sdk", "@modelcontextprotocol/sdk/client/stdio.js"],
+  ["@modelcontextprotocol/core", "@modelcontextprotocol/core"],
+  ["@modelcontextprotocol/server", "@modelcontextprotocol/server"],
+  ["@modelcontextprotocol/server", "@modelcontextprotocol/server/stdio"],
+  ["@modelcontextprotocol/client", "@modelcontextprotocol/client"],
+  ["@modelcontextprotocol/client", "@modelcontextprotocol/client/stdio"],
   ["@modelcontextprotocol/ext-apps", "@modelcontextprotocol/ext-apps/server"],
-  ["zod", "zod/v3"],
+  ["zod", "zod/v4"],
   ["cheerio", "cheerio"],
   ["playwright-core", "playwright-core"],
   ["smol-toml", "smol-toml"],

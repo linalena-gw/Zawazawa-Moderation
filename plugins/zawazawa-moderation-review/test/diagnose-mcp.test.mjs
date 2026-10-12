@@ -42,7 +42,7 @@ test("isolated server diagnostics list tools after dependencies are available", 
     assert.equal(report.result, "success");
     assert.equal(report.phase, "tools");
     assert.equal(report.runtime.nodeSupported, true);
-    assert.equal(report.runtime.pluginVersion, "0.4.0");
+    assert.equal(report.runtime.pluginVersion, "0.6.0");
     assert.equal(report.scope, "isolated_startup");
     assert.equal(report.invocation, "direct_process");
     assert.equal(report.check, "prepared_runtime_stdio");
@@ -89,7 +89,7 @@ test("cache diagnostics identify missing prepared runtimes without requiring SDK
   const report = JSON.parse(failure.stdout);
   assert.equal(report.phase, "runtime_setup");
   assert.equal(report.errorCategory, "runtime_not_prepared");
-  assert.equal(report.runtime.pluginVersion, "0.4.0");
+  assert.equal(report.runtime.pluginVersion, "0.6.0");
   assert.equal(report.dependencyIssues, null);
   assert.equal(failure.stdout.includes(fixture.directory), false);
 });
@@ -196,9 +196,9 @@ test("diagnostic detects an SDK manifest with missing entry files without leakin
       copyFile(join(pluginRoot, "package-lock.json"), join(fixture, "package-lock.json")),
     ]);
     {
-      const sdkPath = join(fixture, "node_modules", "@modelcontextprotocol", "sdk");
+      const sdkPath = join(fixture, "node_modules", "@modelcontextprotocol", "client");
       await mkdir(sdkPath, { recursive: true });
-      await copyFile(join(pluginRoot, "node_modules", "@modelcontextprotocol", "sdk", "package.json"), join(sdkPath, "package.json"));
+      await copyFile(join(pluginRoot, "node_modules", "@modelcontextprotocol", "client", "package.json"), join(sdkPath, "package.json"));
     }
     let stdout;
     try {
@@ -218,7 +218,7 @@ test("diagnostic detects an SDK manifest with missing entry files without leakin
     assert.equal(report.dependencyIssues.length, 2);
     for (const issue of report.dependencyIssues) {
       assert.equal(issue.errorCode, "ERR_MODULE_NOT_FOUND");
-      assert.equal(issue.missingPackage, "@modelcontextprotocol/sdk");
+      assert.equal(issue.missingPackage, "@modelcontextprotocol/client");
       assert.equal(issue.packageManifestPresent, true);
       assert.equal(issue.entrypointResolved, true);
       assert.equal(issue.entrypointExists, false);
@@ -230,7 +230,7 @@ test("diagnostic detects an SDK manifest with missing entry files without leakin
 });
 
 test("missing-package details only return names present in public lock metadata", () => {
-  const names = ["@modelcontextprotocol/sdk", "zod"];
+  const names = ["@modelcontextprotocol/client", "zod"];
   assert.equal(knownMissingPackage(new Error("Cannot find package 'zod' imported from a private location"), names), "zod");
   assert.equal(knownMissingPackage(new Error("Cannot find module 'C:\\private-fixture\\node_modules\\zod\\missing.js'"), names), "zod");
   assert.equal(knownMissingPackage(new Error("Cannot find package 'private-fixture'"), names), null);

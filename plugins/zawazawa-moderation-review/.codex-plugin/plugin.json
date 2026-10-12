@@ -1,6 +1,6 @@
 {
   "name": "zawazawa-moderation-review",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "description": "Investigate ZAWAZAWA reports with repository policies and review proposals in a single interactive approval list.",
   "author": {
     "name": "ZAWAZAWA Moderation contributors"

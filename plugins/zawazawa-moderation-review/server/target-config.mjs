@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, resolve } from "node:path";
-import { z } from "zod/v3";
+import { z } from "zod/v4";
 import { GROUP_KEY } from "./identifiers.mjs";
 import { errorCodesForFamily, recoveryForErrorCode } from "./error-codes.mjs";
 

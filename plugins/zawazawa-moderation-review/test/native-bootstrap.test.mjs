@@ -9,7 +9,7 @@ const scriptRoot = join(dirname(fileURLToPath(import.meta.url)), '..', 'scripts'
 const shell = join(scriptRoot, 'bootstrap.sh');
 const release = JSON.parse(await readFile(join(scriptRoot, 'node-release.json'), 'utf8'));
 test('native bootstrap pins every supported official Node archive', () => {
-  assert.equal(release.version, '24.21.0');
+  assert.equal(release.version, '26.11.1');
   for (const platform of ['darwin-arm64', 'darwin-x64', 'win-arm64', 'win-x64']) assert.match(release[platform], /^[a-f0-9]{64}$/);
 });
 test('macOS read-only entry never creates an unprepared home or uses PATH Node', { skip: process.platform !== 'darwin' }, async () => {
@@ -37,7 +37,7 @@ test('macOS print-node uses only the dedicated verified-version binary', { skip:
     const target = join(temporary, 'node', `v${release.version}-darwin-${arm ? 'arm64' : 'x64'}`);
     await mkdir(join(target, 'bin'), { recursive: true });
     await mkdir(join(target, 'lib/node_modules/npm/bin'), { recursive: true });
-    await writeFile(join(target, 'bin/node'), '#!/bin/sh\nprintf "v24.21.0\\n"\n', { mode: 0o700 });
+    await writeFile(join(target, 'bin/node'), '#!/bin/sh\nprintf "v26.11.1\\n"\n', { mode: 0o700 });
     await writeFile(join(target, 'lib/node_modules/npm/bin/npm-cli.js'), '');
     const result = spawnSync('/bin/sh', [shell, '--print-node'], { env: { ...process.env, ZAWAZAWA_HOME_DIR: temporary, PATH: '/nonexistent' }, encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);

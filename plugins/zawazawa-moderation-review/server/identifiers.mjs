@@ -1,4 +1,4 @@
-import { z } from "zod/v3";
+import { z } from "zod/v4";
 import { errorCodesForFamily } from "./error-codes.mjs";
 
 export const GROUP_KEY = /^[a-z0-9][a-z0-9_-]{0,63}$/u;

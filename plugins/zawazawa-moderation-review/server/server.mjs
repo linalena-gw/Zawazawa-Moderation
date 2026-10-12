@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod/v3";
+import { McpServer } from "@modelcontextprotocol/server";
+import { StdioServerTransport } from "@modelcontextprotocol/server/stdio";
+import { z } from "zod/v4";
 import { ReviewInputError } from "./input-text.mjs";
 import { RESOLVED_PLAN_OPERATION_TYPES } from "./resolved-plan.mjs";
 import { normalizeReviewInput } from "./review-input.mjs";
@@ -311,7 +311,7 @@ const autonomousDecisionSchema = z
   .strict();
 
 const server = new McpServer(
-  { name: "zawazawa-moderation-review", version: "0.4.0" },
+  { name: "zawazawa-moderation-review", version: "0.6.0" },
   {
     instructions:
       "Call these tools from the zawazawa-moderation skill, which carries the workflow and what every approval and result means. Each tool description carries that tool's own inputs, returned fields, and constraints.",

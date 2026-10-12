@@ -14,15 +14,16 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest]
+        node: [24, 26]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: plugins/zawazawa-moderation-review
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
           cache: npm
           cache-dependency-path: plugins/zawazawa-moderation-review/package-lock.json
       - run: npm ci
@@ -38,7 +39,7 @@ jobs:
       run:
         working-directory: plugins/zawazawa-moderation-review
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Prepare without PATH Node on macOS
         if: runner.os == 'macOS'
         shell: bash
