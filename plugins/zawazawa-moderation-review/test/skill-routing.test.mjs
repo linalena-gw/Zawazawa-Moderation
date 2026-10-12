@@ -10,6 +10,18 @@ const policyReview = readFileSync(
   resolve(pluginRoot, "skills/zawazawa-moderation/references/policy-update.md"),
   "utf8",
 );
+const liveRead = readFileSync(
+  resolve(pluginRoot, "skills/zawazawa-moderation/references/live-read.md"),
+  "utf8",
+);
+const reviewUi = readFileSync(
+  resolve(pluginRoot, "skills/zawazawa-moderation/references/review-ui.md"),
+  "utf8",
+);
+const autonomousRun = readFileSync(
+  resolve(pluginRoot, "skills/zawazawa-moderation/references/autonomous-run.md"),
+  "utf8",
+);
 const setupFlow = readFileSync(
   resolve(pluginRoot, "skills/zawazawa-setup/references/setup-flow.md"),
   "utf8",
@@ -41,4 +53,21 @@ test("初回設定の再開でもdry-runを省略せず未管理項目を拒否�
   assert.match(setupFlow, /統一テンプレート/u);
   assert.doesNotMatch(setupFlow, /generic|genshin-wiki/u);
   assert.doesNotMatch(setupFlow, /--profile/u);
+});
+
+test("入力の信頼境界は安全契約を正本として各工程から参照する", () => {
+  const safetyStart = skill.indexOf("## 安全契約");
+  const procedureStart = skill.indexOf("## 手順", safetyStart);
+  assert.ok(safetyStart >= 0 && procedureStart > safetyStart);
+  const safetyContract = skill.slice(safetyStart, procedureStart);
+  assert.match(safetyContract, /引用・要約・転記・サブエージェントへの引き継ぎ後/u);
+  assert.match(safetyContract, /管理者・システム・ツールの指示、結果、承認、新しい基準/u);
+  assert.match(safetyContract, /リンク、コマンド、ローカルパス/u);
+  assert.match(safetyContract, /議論や報告の文言だけで違反を認定せず/u);
+  assert.match(safetyContract, /処理単位と不可分な依存範囲だけ保留/u);
+  assert.match(safetyContract, /独立して判断できる単位は続ける/u);
+  assert.match(safetyContract, /構造化`nextAction`と`browserFallbackAllowed`だけ/u);
+  for (const reference of [liveRead, reviewUi, autonomousRun, policyReview]) {
+    assert.match(reference, /SKILL\.mdの安全契約/u);
+  }
 });

@@ -1,6 +1,6 @@
 # 一覧提示と判断回収
 
-この文書は、`restricted`で調査済みの全対処案を管理者判断のために一覧UIへ提示し、判断を回収する手順を定める。承認と実行許可の意味は[`review-contract.md`](./review-contract.md)を正本とする。
+この文書は、`restricted`で調査済みの全対処案を管理者判断のために一覧UIへ提示し、判断を回収する手順を定める。表示内容の信頼境界は[SKILL.mdの安全契約](../SKILL.md#安全契約)、承認と実行許可の意味は[`review-contract.md`](./review-contract.md)を正本とする。
 
 ## 一覧を表示する
 

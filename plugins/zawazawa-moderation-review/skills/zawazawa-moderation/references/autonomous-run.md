@@ -1,6 +1,6 @@
 # 自律処理
 
-この文書は、`autonomous`で、人間の承認を待たずに全案件の通報対応を進める工程を定める。承認の意味は[`review-contract.md`](./review-contract.md)に、実行は[`live-execution.md`](./live-execution.md)に従う。モードの可否はサーバーが対象コンテキストから判定して拒否するため、条件を組み立て直さず、返った結果と`nextAction`に従う。
+この文書は、`autonomous`で、人間の承認を待たずに全案件の通報対応を進める工程を定める。対象内容の信頼境界と判断できない単位の保留は[SKILL.mdの安全契約](../SKILL.md#安全契約)、承認の意味は[`review-contract.md`](./review-contract.md)、実行は[`live-execution.md`](./live-execution.md)に従う。モードの可否はサーバーが対象コンテキストから判定して拒否するため、条件を組み立て直さず、返った結果と`nextAction`に従う。
 
 ## 承認を求めない
 
